@@ -1,0 +1,114 @@
+package com.yucsan.mapgendafernandochang2025.screen.offLine
+
+
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.yucsan.mapgendafernandochang2025.entidad.UbicacionLocal
+import com.yucsan.mapgendafernandochang2025.screens.rutasoffline.componentes.EditarUbicacionDialog
+import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PantallaUbicaciones(viewModel: UbicacionViewModel, navController: NavController) {
+    val ubicaciones by viewModel.ubicaciones.collectAsState()
+    val query by viewModel.query.collectAsState()
+    var ubicacionSeleccionada by remember { mutableStateOf<UbicacionLocal?>(null) }
+
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text("Gestion Ubicaciones") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(modifier = Modifier.padding(top = padding.calculateTopPadding(), start = 12.dp, end = 12.dp).fillMaxSize()) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = { viewModel.actualizarQuery(it) },
+                label = { Text("Buscar ubicaciones") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(ubicaciones) { ubicacion ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        elevation = CardDefaults.cardElevation(4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "\uD83D\uDCCC ${ubicacion.nombre}",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    "Tipo: ${ubicacion.tipo}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Text(
+                                    "Lat: ${ubicacion.latitud}, Lng: ${ubicacion.longitud}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            IconButton(onClick = { ubicacionSeleccionada = ubicacion }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Editar")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        ubicacionSeleccionada?.let { ubicacion ->
+            EditarUbicacionDialog(
+                ubicacion = ubicacion,
+                onDismiss = { ubicacionSeleccionada = null },
+                onGuardar = { nuevoNombre, nuevoTipo ->
+                    viewModel.actualizarUbicacionCompleta(ubicacion.id, nuevoNombre, nuevoTipo)
+
+                    ubicacionSeleccionada = null
+                },
+                onEliminar = {
+                    viewModel.eliminarUbicacion(ubicacion)
+                    ubicacionSeleccionada = null
+                },
+                onSeleccionarRuta = {
+                    // lógica para ruta base aquí si se necesita más adelante
+                    ubicacionSeleccionada = null
+                }
+            )
+        }
+    }
+}
+
