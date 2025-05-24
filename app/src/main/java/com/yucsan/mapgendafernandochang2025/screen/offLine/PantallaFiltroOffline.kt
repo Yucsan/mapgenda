@@ -412,6 +412,7 @@ fun PantallaFiltroOffline(
                 Log.d("DEBUG_UBICACION", "📦 Fallback a ubicación desde LugarViewModel: $lat, $lng")
                 lugarOfflineViewModel.actualizarUbicacionManual(LatLng(lat, lng))
             }
+
             if (iniciarCarga && ubicacion != null && permisoConcedido.value && !cargando) {
                 visible = false
                 snapshotFlow { visible }.first { !it }

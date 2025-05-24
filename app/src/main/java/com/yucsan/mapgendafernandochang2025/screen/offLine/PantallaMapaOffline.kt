@@ -153,6 +153,15 @@ fun PantallaMapaOffline(
 
     val ubicacionFiltro by lugarRutaOfflineViewModel.ubicacion.collectAsState()
 
+
+    var categoriaSeleccionada by remember { mutableStateOf<String?>(null) }
+    var expandedCategoria by remember { mutableStateOf(false) }
+
+    val categoriasDisponiblesRutas = listOf(
+        "personalizada", "cultural", "histórica", "gastronómica", "otros"
+    )
+
+
     LaunchedEffect(Unit) {
         if (ubicacionSeleccionada == null && ubicacionFiltro != null) {
             ubicacionSeleccionada = LatLng(ubicacionFiltro!!.first, ubicacionFiltro!!.second)
@@ -703,9 +712,45 @@ fun PantallaMapaOffline(
                                         label = { Text("Nombre de la ruta") },
                                         modifier = Modifier.fillMaxWidth()
                                     )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Text("Esta ruta se guardará sin ubicación base.", style = MaterialTheme.typography.bodySmall)
+
+                                    Spacer(modifier = Modifier.height(18.dp))
+
+                                    ExposedDropdownMenuBox(
+                                        expanded = expandedCategoria,
+                                        onExpandedChange = { expandedCategoria = !expandedCategoria }
+                                    ) {
+                                        OutlinedTextField(
+                                            readOnly = true,
+                                            value = categoriaSeleccionada ?: "Selecciona categoría",
+                                            onValueChange = {},
+                                            label = { Text("Categoría") },
+                                            trailingIcon = {
+                                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria)
+                                            },
+                                            modifier = Modifier
+                                                .menuAnchor()
+                                                .fillMaxWidth()
+                                        )
+                                        // Categorias Rutas
+                                        ExposedDropdownMenu(
+                                            expanded = expandedCategoria,
+                                            onDismissRequest = { expandedCategoria = false }
+                                        ) {
+                                            categoriasDisponiblesRutas.forEach { categoria ->
+                                                DropdownMenuItem(
+                                                    text = { Text(categoria) },
+                                                    onClick = {
+                                                        categoriaSeleccionada = categoria
+                                                        expandedCategoria = false
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+
                                 }
+
+
                             },
                             confirmButton = {
                                 TextButton(onClick = {
@@ -773,7 +818,7 @@ fun PantallaMapaOffline(
 
                                         rutaViewModel.crearRuta(
                                             nombre = nombreRuta,
-                                            categoria = "personalizada",
+                                            categoria = categoriaSeleccionada ?: "personalizada",
                                             ubicacionId = null, // ✅ SIN ubicación
                                             lugares = lugaresSeleccionadosParaRuta.toList(),
                                             polylineCodificada = polyline

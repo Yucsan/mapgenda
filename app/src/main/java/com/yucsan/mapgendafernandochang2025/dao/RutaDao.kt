@@ -25,10 +25,11 @@ interface RutaDao {
     suspend fun insertarReferencias(rutaLugares: List<RutaLugarCrossRef>)
 
 
-    // Obtener todas las rutas con sus lugares
+    // Obtener todas las rutas con sus lugares ordenada por fecha de creación
     @Transaction
-    @Query("SELECT * FROM rutas ORDER BY id DESC")
+    @Query("SELECT * FROM rutas ORDER BY fechaDeCreacion DESC")
     fun obtenerRutasConLugares(): Flow<List<RutaConLugares>>
+
 
     @Query("SELECT * FROM rutas WHERE id = :rutaId LIMIT 1")
     suspend fun obtenerRutaPorId(rutaId: Long): RutaEntity

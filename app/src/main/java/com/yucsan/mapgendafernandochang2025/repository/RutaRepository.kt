@@ -30,7 +30,8 @@ class RutaRepository(private val dao: RutaDao) {
                 nombre = nombre,
                 categoria = categoria,
                 ubicacionId = ubicacionId,
-                polylineCodificada = polylineCodificada
+                polylineCodificada = polylineCodificada,
+                fechaDeCreacion = System.currentTimeMillis()
             )
         )
 

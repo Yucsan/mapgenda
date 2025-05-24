@@ -15,7 +15,8 @@ data class RutaEntity(
     val nombre: String,
     val categoria: String? = null,
     val ubicacionId: Long? = null,
-    val polylineCodificada: String? = null
+    val polylineCodificada: String? = null,
+    val fechaDeCreacion: Long = System.currentTimeMillis()
 )
 
 @Entity(primaryKeys = ["rutaId", "lugarId"])

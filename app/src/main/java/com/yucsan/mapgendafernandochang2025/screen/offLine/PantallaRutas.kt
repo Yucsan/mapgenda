@@ -25,9 +25,13 @@ import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import com.yucsan.mapmapgendafernandochang2025.entidad.RutaConLugares
 import android.net.Uri
-
-
-
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -49,7 +53,6 @@ fun PantallaRutas(viewModel: RutaViewModel, navController: NavController) {
     )
 
     val categoriasDisponibles = listOf("personalizada", "cultural", "gastronómica", "histórica", "otros")
-
     var nuevoNombreRuta by remember { mutableStateOf("") }
     var categoriaSeleccionada by remember { mutableStateOf<String?>(null) }
     var expandedDropdown by remember { mutableStateOf(false) }
@@ -243,45 +246,104 @@ fun PantallaRutas(viewModel: RutaViewModel, navController: NavController) {
         },
         content = {
             Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "Rutas Guardadas",
-                            modifier = Modifier.padding(vertical = 0.dp) // 👈 reduce espacio arriba y abajo
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    IconButton(
+                        onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = MaterialTheme.colorScheme.secondary
                         )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                        }
                     }
-                )
+                    Spacer(modifier = Modifier.width(8.dp)) // Espacio entre ícono y texto
+
+                    Text(
+                        text = "Bitacora de Rutas",
+                        color =  MaterialTheme.colorScheme.secondary ,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+
+                    )
+                }
 
 
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(rutas) { rutaConLugares ->
                         val ruta = rutaConLugares.ruta
+
+                        val fechaFormateada = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                            .format(Date(ruta.fechaDeCreacion))
+
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 6.dp),
                             elevation = CardDefaults.cardElevation(4.dp)
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                    .padding(12.dp)
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("🛣️ ${ruta.nombre}", style = MaterialTheme.typography.titleMedium)
-                                    Text("Lugares: ${rutaConLugares.lugares.size}", style = MaterialTheme.typography.bodySmall)
-                                    Text("Categoría: ${ruta.categoria ?: "Sin categoría"}", style = MaterialTheme.typography.bodySmall)
+                                // Parte superior: título y detalles
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Text(text= "🛣️ ${ruta.nombre}",
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary)
+
+                                    val partes = fechaFormateada.split(" ") // fecha en el CARD ----- REFACTORIZAR **
+
+                                    Text(
+                                        fontWeight = FontWeight.Bold,
+                                        text = buildAnnotatedString {
+                                            append("Creada el: ")
+
+                                            withStyle(
+                                                style = SpanStyle(
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.secondary
+                                                )
+                                            ) {
+                                                append(partes.getOrNull(0) ?: "fecha")
+                                            }
+
+                                            append(" ")
+
+                                            withStyle(
+                                                style = SpanStyle(
+                                                    fontWeight = FontWeight.Normal,
+                                                    color = MaterialTheme.colorScheme.secondary
+                                                )
+                                            ) {
+                                                append(partes.getOrNull(1) ?: "")
+                                            }
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(top = 3.dp)
+                                    )
+
+                                    Text (text = "Lugares: ${rutaConLugares.lugares.size}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold)
+
+                                    Text (text = "Categoría: ${ruta.categoria ?: "Sin categoría"}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold)
                                 }
 
-                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Spacer(modifier = Modifier.height(8.dp))
 
+                                // Parte inferior: fila de íconos
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     IconButton(onClick = {
                                         viewModel.recargarRutaSeleccionada(ruta.id) { rutaRecargada ->
                                             rutaSeleccionada = RutaConLugares(
@@ -303,14 +365,12 @@ fun PantallaRutas(viewModel: RutaViewModel, navController: NavController) {
                                     IconButton(
                                         onClick = { navController.navigate("verRutaOffline/${ruta.id}") },
                                         colors = IconButtonDefaults.iconButtonColors(
-                                            containerColor = Color(0xFF1976D2), // Azul tipo Google Maps
+                                            containerColor = Color(0xFF1976D2),
                                             contentColor = Color.White
                                         )
                                     ) {
                                         Icon(Icons.Default.Map, contentDescription = "Ver en mapa")
                                     }
-
-
 
                                     IconButton(onClick = {
                                         val lugares = rutaConLugares.lugares
@@ -347,10 +407,12 @@ fun PantallaRutas(viewModel: RutaViewModel, navController: NavController) {
                                         Icon(Icons.Default.Delete, contentDescription = "Eliminar")
                                     }
                                 }
-
-
                             }
                         }
+
+
+
+
                     }
                 }
             }
