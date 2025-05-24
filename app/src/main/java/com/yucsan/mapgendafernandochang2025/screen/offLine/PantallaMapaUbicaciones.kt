@@ -43,7 +43,8 @@ fun PantallaMapaUbicacion(
     lugarViewModel: LugarViewModel,
     mapViewModel: MapViewModel,
     ubicacionViewModel: UbicacionViewModel,
-    navController: NavController
+    navController: NavController,
+    desdeDescarga: Boolean = false
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -167,7 +168,22 @@ fun PantallaMapaUbicacion(
                         )
                         Toast.makeText(context, "Ubicación guardada", Toast.LENGTH_SHORT).show()
                         mostrarDialogoGuardar.value = false
-                        navController.popBackStack()
+
+                        // 2️⃣ **NUEVO**: Actualizamos el LugarViewModel para emitir la nueva ubicación
+                        val nuevaLatLng = LatLng(
+                            ubicacionSeleccionada!!.latitude,
+                            ubicacionSeleccionada!!.longitude
+                        )
+                        lugarViewModel.actualizarUbicacionManual(nuevaLatLng)
+                        Log.d("DEBUG_UI", "🛠  Se emitió nueva ubicación: $nuevaLatLng")
+
+                        if (desdeDescarga) {
+                            navController.navigate("pantallaTabsDescarga") {
+                                popUpTo("pantallaTabsDescarga") { inclusive = true }
+                            }
+                        } else {
+                            navController.popBackStack()
+                        }
                     },
                     onEliminar = { mostrarDialogoGuardar.value = false },
                     onSeleccionarRuta = {
@@ -175,6 +191,9 @@ fun PantallaMapaUbicacion(
                     }
                 )
             }
+
+
+
         }
     }
 

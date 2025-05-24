@@ -69,8 +69,6 @@ class RutaRepository(private val dao: RutaDao) {
         )
     }
 
-
-
     suspend fun agregarLugaresARuta(rutaId: Long, lugares: List<LugarLocal>) {
         val refs = lugares.mapIndexed { index, it ->
             RutaLugarCrossRef(
@@ -85,7 +83,5 @@ class RutaRepository(private val dao: RutaDao) {
     suspend fun eliminarLugarDeRuta(rutaId: Long, lugarId: String) {
         dao.eliminarLugarDeRuta(rutaId, lugarId)
     }
-
-
 
 }

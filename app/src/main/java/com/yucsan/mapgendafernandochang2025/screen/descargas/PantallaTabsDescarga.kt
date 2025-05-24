@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yucsan.mapgendafernandochang2025.ThemeViewModel
@@ -27,7 +29,13 @@ fun PantallaTabsDescarga(
                 Tab(
                     selected = selectedTabIndex == index,
                     onClick = { selectedTabIndex = index },
-                    text = { Text(title) }
+                    text = {
+                        Text(
+                            text = title,
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 )
             }
         }

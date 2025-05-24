@@ -25,7 +25,7 @@ private val DarkColorScheme = darkColorScheme(
 
 private val LightColorScheme = lightColorScheme(
     primary = Color(0xFF7100D4),
-    secondary = PurpleGrey40,
+    secondary = Color(0xFF327F16),
     tertiary = Color(0xFFBDBDBE),
 
     // Text colors in light mode

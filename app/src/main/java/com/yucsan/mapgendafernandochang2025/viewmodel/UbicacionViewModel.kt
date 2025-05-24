@@ -73,5 +73,4 @@ class UbicacionViewModel(private val repository: UbicacionRepository) : ViewMode
     }
 
 
-
 }

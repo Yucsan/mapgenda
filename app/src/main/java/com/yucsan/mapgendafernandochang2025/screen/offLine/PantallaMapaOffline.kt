@@ -743,18 +743,6 @@ fun PantallaMapaOffline(
                     if (mostrarDialogoGuardarRuta.value) {
                         var nombreRuta by remember { mutableStateOf("") }
 
-                        var expanded by remember { mutableStateOf(false) }
-
-                        val ubicacionesCercanas = remember(ubicacionSeleccionada, ubicaciones) {
-                            ubicaciones
-                                .sortedBy { ubi ->
-                                    val dLat = ubi.latitud - (ubicacionSeleccionada?.latitude ?: 0.0)
-                                    val dLng = ubi.longitud - (ubicacionSeleccionada?.longitude ?: 0.0)
-                                    dLat * dLat + dLng * dLng
-                                }
-                                .take(5)
-                        }
-
                         AlertDialog(
                             onDismissRequest = { mostrarDialogoGuardarRuta.value = false },
                             title = { Text("Guardar nueva ruta") },
@@ -766,54 +754,8 @@ fun PantallaMapaOffline(
                                         label = { Text("Nombre de la ruta") },
                                         modifier = Modifier.fillMaxWidth()
                                     )
-
                                     Spacer(modifier = Modifier.height(12.dp))
-
-                                    Text("Selecciona la ubicación base:", style = MaterialTheme.typography.bodySmall)
-
-                                    ExposedDropdownMenuBox(
-                                        expanded = expanded,
-                                        onExpandedChange = { expanded = !expanded }
-                                    ) {
-                                        OutlinedTextField(
-                                            readOnly = true,
-                                            value = when {
-                                                usarPrimerLugarComoUbicacion -> "📍 Usar primer lugar como ubicación base"
-                                                ubicacionCercanaSeleccionada != null -> ubicacionCercanaSeleccionada!!.nombre
-                                                else -> "Seleccionar ubicación"
-                                            },
-                                            onValueChange = {},
-                                            label = { Text("Ubicación cercana") },
-                                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                                            modifier = Modifier.menuAnchor()
-                                        )
-
-                                        ExposedDropdownMenu(
-                                            expanded = expanded,
-                                            onDismissRequest = { expanded = false }
-                                        ) {
-                                            ubicacionesCercanas.forEach { ubicacion ->
-                                                DropdownMenuItem(
-                                                    text = { Text(ubicacion.nombre) },
-                                                    onClick = {
-                                                        ubicacionCercanaSeleccionada = ubicacion
-                                                        expanded = false
-                                                    }
-                                                )
-                                            }
-                                            // Opcion especial si hay al menos un lugar seleccionado
-                                            if (lugaresSeleccionadosParaRuta.isNotEmpty()) {
-                                                DropdownMenuItem(
-                                                    text = { Text("\uD83D\uDCCD Usar primer lugar como ubicación base") },
-                                                    onClick = {
-                                                        ubicacionCercanaSeleccionada = null // Desmarcar cualquiera
-                                                        usarPrimerLugarComoUbicacion = true
-                                                        expanded = false
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
+                                    Text("Esta ruta se guardará sin ubicación base.", style = MaterialTheme.typography.bodySmall)
                                 }
                             },
                             confirmButton = {
@@ -823,44 +765,35 @@ fun PantallaMapaOffline(
                                         return@TextButton
                                     }
 
-                                    val primerLugar = lugaresSeleccionadosParaRuta.firstOrNull()
-                                    val ultimoLugar = lugaresSeleccionadosParaRuta.lastOrNull()
-
-                                    val latFinal = if (usarPrimerLugarComoUbicacion && primerLugar != null) {
-                                        primerLugar.latitud
-                                    } else {
-                                        ubicacionCercanaSeleccionada?.latitud ?: 0.0
+                                    if (lugaresSeleccionadosParaRuta.size < 3) {
+                                        Toast.makeText(context, "Selecciona al menos 3 lugares", Toast.LENGTH_SHORT).show()
+                                        return@TextButton
                                     }
 
-                                    val lngFinal = if (usarPrimerLugarComoUbicacion && primerLugar != null) {
-                                        primerLugar.longitud
-                                    } else {
-                                        ubicacionCercanaSeleccionada?.longitud ?: 0.0
-                                    }
+                                    val primerLugar = lugaresSeleccionadosParaRuta.first()
+                                    val ultimoLugar = lugaresSeleccionadosParaRuta.last()
 
                                     scope.launch {
                                         var polyline: String? = null
 
                                         try {
-                                            if (primerLugar != null && ultimoLugar != null) {
-                                                val origin = "${primerLugar.latitud},${primerLugar.longitud}"
-                                                val destination = "${ultimoLugar.latitud},${ultimoLugar.longitud}"
-                                                val waypoints = if (lugaresSeleccionadosParaRuta.size > 2) {
-                                                    lugaresSeleccionadosParaRuta
-                                                        .subList(1, lugaresSeleccionadosParaRuta.lastIndex)
-                                                        .joinToString("|") { "${it.latitud},${it.longitud}" }
-                                                } else ""
+                                            val origin = "${primerLugar.latitud},${primerLugar.longitud}"
+                                            val destination = "${ultimoLugar.latitud},${ultimoLugar.longitud}"
+                                            val waypoints = if (lugaresSeleccionadosParaRuta.size > 2) {
+                                                lugaresSeleccionadosParaRuta
+                                                    .subList(1, lugaresSeleccionadosParaRuta.lastIndex)
+                                                    .joinToString("|") { "${it.latitud},${it.longitud}" }
+                                            } else ""
 
-                                                val response = directionsService.api.obtenerRutaConWaypoints(
-                                                    origin = origin,
-                                                    destination = destination,
-                                                    waypoints = waypoints,
-                                                    mode = modoTransporte,
-                                                    apiKey = Secrets.GOOGLE_MAPS_API_KEY
-                                                )
+                                            val response = directionsService.api.obtenerRutaConWaypoints(
+                                                origin = origin,
+                                                destination = destination,
+                                                waypoints = waypoints,
+                                                mode = modoTransporte,
+                                                apiKey = Secrets.GOOGLE_MAPS_API_KEY
+                                            )
 
-                                                polyline = response.routes.firstOrNull()?.overview_polyline?.points
-                                            }
+                                            polyline = response.routes.firstOrNull()?.overview_polyline?.points
                                         } catch (e: Exception) {
                                             Log.e("RUTA_GUARDAR", "Error al obtener ruta: ${e.message}")
                                         }
@@ -870,43 +803,18 @@ fun PantallaMapaOffline(
                                             return@launch
                                         }
 
-                                        if (usarPrimerLugarComoUbicacion && primerLugar != null) {
-                                            val nuevaUbicacion = UbicacionLocal(
-                                                nombre = "Ubicación desde lugar",
-                                                latitud = latFinal,
-                                                longitud = lngFinal,
-                                                tipo = "referencia"
-                                            )
-                                            val nuevaId = ubicacionViewModel.guardarYRetornarId(nuevaUbicacion)
-
-                                            rutaViewModel.crearRuta(
-                                                nombre = nombreRuta,
-                                                categoria = "personalizada",
-                                                ubicacionId = nuevaId,
-                                                lugares = lugaresSeleccionadosParaRuta.toList(),
-                                                polylineCodificada = polyline
-                                            )
-
-                                        } else if (ubicacionCercanaSeleccionada?.id != null) {
-                                            rutaViewModel.crearRuta(
-                                                nombre = nombreRuta,
-                                                categoria = "personalizada",
-                                                ubicacionId = ubicacionCercanaSeleccionada!!.id.toLong(),
-                                                lugares = lugaresSeleccionadosParaRuta.toList(),
-                                                polylineCodificada = polyline
-                                            )
-                                        } else {
-                                            Toast.makeText(context, "Debes seleccionar una ubicación base", Toast.LENGTH_SHORT).show()
-                                            return@launch
-                                        }
+                                        rutaViewModel.crearRuta(
+                                            nombre = nombreRuta,
+                                            categoria = "personalizada",
+                                            ubicacionId = null, // ✅ SIN ubicación
+                                            lugares = lugaresSeleccionadosParaRuta.toList(),
+                                            polylineCodificada = polyline
+                                        )
 
                                         mostrarDialogoGuardarRuta.value = false
                                         lugaresSeleccionadosParaRuta.clear()
                                         modoCrearRuta = false
-
-                                        latParaGuia = latFinal
-                                        lngParaGuia = lngFinal
-                                        mostrarPantallaDescarga.value = true
+                                        Toast.makeText(context, "Ruta guardada con éxito", Toast.LENGTH_SHORT).show()
                                     }
                                 }) {
                                     Text("Guardar")
@@ -918,6 +826,7 @@ fun PantallaMapaOffline(
                                 }
                             }
                         )
+
                     }
 
 

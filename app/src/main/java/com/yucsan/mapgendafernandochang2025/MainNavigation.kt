@@ -143,15 +143,25 @@ fun MainNavigation(
         }
 
         composable(
-            route = "mapaSeleccionUbicacion",
-        ) {
+            route = "mapaSeleccionUbicacion?desdeDescarga={desdeDescarga}",
+            arguments = listOf(
+                navArgument("desdeDescarga") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) { backStackEntry ->
+            val desdeDescarga = backStackEntry.arguments?.getBoolean("desdeDescarga") ?: false
+
             PantallaMapaUbicacion(
                 lugarViewModel = lugarViewModel,
                 mapViewModel = mapViewModel,
                 navController = navController,
                 ubicacionViewModel = ubicacionViewModel,
+                desdeDescarga = desdeDescarga
             )
         }
+
 
         composable("rutas") {
             PantallaRutas(rutaViewModel, navController)

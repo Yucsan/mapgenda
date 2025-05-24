@@ -31,8 +31,11 @@ import kotlinx.coroutines.flow.first
 import com.yucsan.mapgendafernandochang2025.util.categoriasPorGrupo
 import com.yucsan.mapgendafernandochang2025.util.coloresPorCategoriaPadre
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.ui.input.pointer.motionEventSpy
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.maps.model.LatLng
 import com.yucsan.mapgendafernandochang2025.util.categoriasPorGrupo
@@ -108,347 +111,298 @@ fun PantallaFiltroOffline(
         slideOutVertically(targetOffsetY = { fullHeight -> fullHeight }) + fadeOut()
     }
 
-    // UI principal animada
     AnimatedVisibility(visible = visible, enter = enterAnimation, exit = exitAnimation) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            topBar = {
-                TopAppBar(
-                    title = { Text("Filtro de lugares Rutas Offline") },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Volver"
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 6.dp,
+                        end = 6.dp,
+                        bottom = 32.dp
+                    )
+                ) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            IconButton(
+                                onClick = { navController.popBackStack() }) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowBack,
+                                    contentDescription = "Volver",
+                                    tint = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp)) // Espacio entre ícono y texto
+
+                            Text(
+                                text = "Filtro Mapa Offline",
+                                color =  MaterialTheme.colorScheme.secondary ,
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+
                             )
                         }
                     }
-                )
-            }
-        ) { padding ->
-            AnimatedVisibility(visible = visible, enter = enterAnimation, exit = exitAnimation) {
-                Box(
-                    modifier = Modifier
-                        .padding(padding)
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.TopCenter
-                ) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .padding(6.dp)
-                            .fillMaxSize()
-                    ) {
-                        item {
+                    item {
+                        Column(modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(3.dp)
+                        )
+                        {
+                            Text(
+                                text = "Selecciona una ubicación guardada:",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                                    .padding(vertical = 5.dp)
+                            )
 
-
-                            Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-                                Text("Selecciona una ubicación guardada:")
-
-                                Box {
-                                    OutlinedButton(onClick = { expandirMenu = true }) {
-                                        val ubicacionActual = ubicacion // Extraemos primero el valor para evitar smart cast error
-
-                                        val ubicacionSeleccionadaTexto = remember(ubicacionesGuardadas, ubicacionActual) {
-                                            val match = ubicacionesGuardadas.find {
-                                                it.latitud == ubicacionActual?.first && it.longitud == ubicacionActual?.second
-                                            }
-
-                                            match?.let { "📍 ${it.nombre} (${it.tipo})" }
-                                                ?: ubicacionActual?.let { "📍 ${it.first.format(4)}, ${it.second.format(4)}" }
-                                                ?: "Elegir ubicación"
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                OutlinedButton(
+                                    onClick = { expandirMenu = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = MaterialTheme.shapes.small,
+                                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                                ) {
+                                    val ubicacionActual = ubicacion
+                                    val colorScheme = MaterialTheme.colorScheme
+                                    val (textoUbicacion, colorUbicacion) = remember(
+                                        ubicacionesGuardadas,
+                                        ubicacionActual
+                                    ) {
+                                        val match = ubicacionesGuardadas.find {
+                                            it.latitud == ubicacionActual?.first && it.longitud == ubicacionActual?.second
                                         }
-
-                                        Text(ubicacionSeleccionadaTexto)
-
+                                        if (match != null) {
+                                            "📍 ${match.nombre} (${match.tipo})" to Color(0xFFFF4000)
+                                        } else if (ubicacionActual != null) {
+                                            "📍 %.4f, %.4f".format(
+                                                ubicacionActual.first,
+                                                ubicacionActual.second
+                                            ) to Color(0xFFFF4000)
+                                        } else {
+                                            "Elegir ubicación" to colorScheme.primary
+                                        }
                                     }
 
-                                    DropdownMenu(
-                                        expanded = expandirMenu,
-                                        onDismissRequest = { expandirMenu = false }
-                                    ) {
-                                        if (ubicacionesGuardadas.isEmpty()) {
+                                    Text(
+                                        text = textoUbicacion,
+                                        color = colorUbicacion,
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                }
+
+                                // Dropdown fuera del LazyColumn (pero aún dentro del Box para correcto posicionamiento)
+                                DropdownMenu(
+                                    expanded = expandirMenu,
+                                    onDismissRequest = { expandirMenu = false }
+                                ) {
+                                    if (ubicacionesGuardadas.isEmpty()) {
+                                        DropdownMenuItem(
+                                            text = { Text("No hay ubicaciones guardadas") },
+                                            onClick = {}
+                                        )
+                                    } else {
+                                        ubicacionesGuardadas.forEach { ubi ->
                                             DropdownMenuItem(
-                                                text = { Text("No hay ubicaciones guardadas") },
-                                                onClick = {}
+                                                text = { Text("${ubi.nombre} (${ubi.tipo})") },
+                                                onClick = {
+                                                    lugarOfflineViewModel.actualizarUbicacionManual(
+                                                        LatLng(ubi.latitud, ubi.longitud)
+                                                    )
+                                                    expandirMenu = false
+                                                }
                                             )
-                                        } else {
-                                            ubicacionesGuardadas.forEach { ubi ->
-                                                DropdownMenuItem(
-                                                    text = { Text("${ubi.nombre} (${ubi.tipo})") },
-                                                    onClick = {
-                                                        lugarOfflineViewModel.actualizarUbicacionManual(
-                                                            LatLng(ubi.latitud, ubi.longitud)
-                                                        )
-                                                        expandirMenu = false
-                                                    }
-                                                )
-                                            }
                                         }
                                     }
                                 }
                             }
                         }
+                    }
 
-                        // Sección de categorías principales
-                        item {
-                            Text(text = "Ubicación usada: ${ubicacion?.first}, ${ubicacion?.second}")
+                    item {
+                        Spacer(Modifier.height(8.dp))
+
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 12.dp)
+                        ) {
+                            categoriasPorGrupo.entries.forEach { (categoria, _) ->
+                                val color = coloresPorCategoriaPadre[categoria]
+                                FilterChip(
+                                    selected = categoriasActivas.contains(categoria),
+                                    onClick = {
+                                        if (categoriasActivas.contains(categoria)) {
+                                            categoriasActivas.remove(categoria)
+                                            categoriasPorGrupo[categoria]?.forEach {
+                                                seleccionadas.remove(it)
+                                            }
+                                        } else {
+                                            categoriasActivas.add(categoria)
+                                        }
+                                    },
+                                    label = { Text(categoria) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = color ?: Color.Gray,
+                                        containerColor = Color.Transparent,
+                                        selectedLabelColor = Color.White,
+                                        labelColor = color ?: MaterialTheme.colorScheme.primary,
+                                        disabledLabelColor = color?.copy(alpha = 0.4f) ?: Color.LightGray
+                                    ),
+                                    border = BorderStroke(1.dp, color ?: Color.Gray)
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Spacer(Modifier.height(1.dp))
+                        categoriasActivasOrdenadas.forEach { categoria ->
+                            val color = coloresPorCategoriaPadre[categoria]
+                            Text(
+                                text = categoria,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = color ?: MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 4.dp)
+                            )
 
                             FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 8.dp)
+                                    .padding(start = 12.dp)
                             ) {
-                                categoriasPorGrupo.entries.forEach { (categoria, _) ->
-                                    val color = coloresPorCategoriaPadre[categoria]
-                                    FilterChip(
-                                        selected = categoriasActivas.contains(categoria),
-                                        onClick = {
-                                            if (categoriasActivas.contains(categoria)) {
-                                                categoriasActivas.remove(categoria)
-                                                categoriasPorGrupo[categoria]?.forEach {
-                                                    seleccionadas.remove(it)
-                                                }
-                                            } else {
-                                                categoriasActivas.add(categoria)
-                                            }
-                                        },
-                                        label = { Text(categoria) },
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = color
-                                                ?: Color.Gray, // fondo cuando está seleccionado
-                                            containerColor = Color.Transparent, // fondo cuando NO está seleccionado
-                                            selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-                                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            selectedTrailingIconColor = Color.White,
-                                            disabledContainerColor = Color.Transparent,
-                                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                                                ?: Color.LightGray
-                                        ),
-                                        border = BorderStroke(1.dp, color ?: Color.Gray)
-                                    )
-                                }
-                            }
-                        }
-
-                        item{
-
-                            //------------------------------------------ funcion de prueba que YA FUNCIONA
-                         /*
-                            val scope = rememberCoroutineScope()
-                            Button(
-                                onClick = {
-                                    scope.launch {
-                                        lugarOfflineViewModel.probarFiltroManual2()
-                                        delay(500) // Espera corta para asegurar que _lugaresOffline se actualice
-                                        val lugares = lugarOfflineViewModel.lugaresOffline.value
-                                        Log.d("PRUEBA_MANUAL_UI", "🟢 Lugares después de prueba: ${lugares.size}")
-                                        if (lugares.isNotEmpty()) {
-                                            // Opcionalmente setear ubicación fija para centrar el mapa (coincide con el filtro)
-                                            lugarOfflineViewModel.actualizarUbicacionManual(
-                                                LatLng(42.8782, -8.5448)
-                                            )
-
-                                            // Navegar al mapa
-                                            navController.navigate("mapaubi") {
-                                                popUpTo(0)
-                                            }
-                                        } else {
-                                            Toast.makeText(
-                                                context,
-                                                "❗ No se encontraron lugares con el filtro de prueba",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    }
-                                }
-                            ) {
-                                Text("🔍 Probar filtro manual")
-                            }*/
-                        }
-
-                        item {
-                            Spacer(Modifier.height(1.dp))
-                            // Sección de subcategorías
-                            categoriasActivasOrdenadas.forEach { categoria ->
-                                val color = coloresPorCategoriaPadre[categoria]
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = categoria,
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                    Text(
-                                        text = "minimenú",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = Color.Gray
-                                    )
-                                }
-
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 8.dp)
-                                ) {
-                                    categoriasPorGrupo[categoria]?.forEach { subcategoria ->
-                                        if ((conteoPorSubcategoria[subcategoria] ?: 0) > 0) {
-
-                                            val switchActivo =
-                                                switchesActivos[subcategoria] ?: false
-
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 1.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                // CHIP para selección de subcategoría
-                                                FilterChip(
-                                                    selected = seleccionadas.contains(subcategoria),
-                                                    onClick = {
-                                                        if (seleccionadas.contains(subcategoria)) {
-                                                            seleccionadas.remove(subcategoria)
-                                                        } else {
-                                                            seleccionadas.add(subcategoria)
-                                                        }
-                                                    },
-                                                    label = {
-                                                        Text("$subcategoria (${conteoPorSubcategoria[subcategoria] ?: 0})")
-                                                    },
-                                                    colors = FilterChipDefaults.filterChipColors(
-                                                        selectedContainerColor = color
-                                                            ?: Color.Gray,
-                                                        selectedLabelColor = Color.White,
-                                                        containerColor = color?.copy(alpha = 0.2f)
-                                                            ?: Color.LightGray
-                                                    ),
-                                                    border = BorderStroke(1.dp, color ?: Color.Gray)
-                                                )
-
-                                                // SWITCH independiente
-                                                Switch(
-                                                    checked = switchActivo,
-                                                    onCheckedChange = { isChecked ->
-                                                        switchesActivos[subcategoria] = isChecked
-                                                        // Aquí puedes activar una acción especial si lo necesitas
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                                Spacer(Modifier.height(1.dp))
-                            }
-                        }
-                        // Botón para aplicar filtro
-
-
-                        item {
-                            Spacer(modifier = Modifier.height(24.dp))
-                            val scope = rememberCoroutineScope()
-                            Button(
-                                onClick = {
-                                    if (seleccionadas.isNotEmpty()) {
-                                        scope.launch {
-                                            val ubicacionManual = lugarOfflineViewModel.ubicacion.value
-
-                                            if (ubicacionManual != null) {
-                                                val latLng = LatLng(ubicacionManual.first, ubicacionManual.second)
-
-                                                // ✅ Actualizamos ubicación manualmente en el ViewModel, si aún no lo está
-                                                lugarOfflineViewModel.actualizarUbicacionManual(latLng)
-
-                                                // ✅ Guardamos filtros y radio
-                                                lugarOfflineViewModel.actualizarRadio(distanciaFiltro)
-                                                lugarOfflineViewModel.actualizarFiltrosActivos(seleccionadas.toSet())
-                                                lugarOfflineViewModel.actualizarCategorias(seleccionadas.toSet())
-
-                                                // ✅ Aplicamos el filtro dinámico real
-                                                lugarOfflineViewModel.aplicarFiltroManualConParametros(
-                                                    subcategorias = seleccionadas.toList(),
-                                                    centro = latLng,
-                                                    radio = distanciaFiltro
-                                                )
-
-                                                delay(600) // ⏱️ Pequeña espera para que lugaresOffline se actualice
-                                                val lugares = lugarOfflineViewModel.lugaresOffline.value
-                                                Log.d("FILTRO_DINAMICO", "✅ Lugares filtrados: ${lugares.size}")
-
-                                                if (lugares.isNotEmpty()) {
-                                                    navController.navigate("mapaubi") {
-                                                        popUpTo(0)
-                                                    }
+                                categoriasPorGrupo[categoria]?.forEach { subcategoria ->
+                                    if ((conteoPorSubcategoria[subcategoria] ?: 0) > 0) {
+                                        FilterChip(
+                                            selected = seleccionadas.contains(subcategoria),
+                                            onClick = {
+                                                if (seleccionadas.contains(subcategoria)) {
+                                                    seleccionadas.remove(subcategoria)
                                                 } else {
-                                                    Toast.makeText(
-                                                        context,
-                                                        "❗ No se encontraron lugares con el filtro actual",
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
+                                                    seleccionadas.add(subcategoria)
+                                                }
+                                            },
+                                            label = {
+                                                Text(
+                                                    "$subcategoria (${conteoPorSubcategoria[subcategoria] ?: 0})",
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = color ?: Color.Gray,
+                                                selectedLabelColor = Color.White,
+                                                containerColor = color?.copy(alpha = 0.2f)
+                                                    ?: Color.LightGray
+                                            ),
+                                            border = BorderStroke(1.dp, color ?: Color.Gray)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        val scope = rememberCoroutineScope()
+                        Button(
+                            onClick = {
+                                if (seleccionadas.isNotEmpty()) {
+                                    scope.launch {
+                                        val ubicacionManual = lugarOfflineViewModel.ubicacion.value
+                                        if (ubicacionManual != null) {
+                                            val latLng = LatLng(ubicacionManual.first, ubicacionManual.second)
+                                            lugarOfflineViewModel.actualizarUbicacionManual(latLng)
+                                            lugarOfflineViewModel.actualizarRadio(distanciaFiltro)
+                                            lugarOfflineViewModel.actualizarFiltrosActivos(seleccionadas.toSet())
+                                            lugarOfflineViewModel.actualizarCategorias(seleccionadas.toSet())
+                                            lugarOfflineViewModel.aplicarFiltroManualConParametros(
+                                                subcategorias = seleccionadas.toList(),
+                                                centro = latLng,
+                                                radio = distanciaFiltro
+                                            )
+                                            delay(600)
+                                            val lugares = lugarOfflineViewModel.lugaresOffline.value
+                                            if (lugares.isNotEmpty()) {
+                                                navController.navigate("mapaubi") {
+                                                    popUpTo(0)
                                                 }
                                             } else {
                                                 Toast.makeText(
                                                     context,
-                                                    "❗ No hay ubicación disponible para aplicar el filtro",
+                                                    "❗ No se encontraron lugares con el filtro actual",
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                             }
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                "❗ No hay ubicación disponible para aplicar el filtro",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         }
-                                    } else {
-                                        Toast.makeText(
+                                    }
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Selecciona al menos una categoría",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Buscar lugares")
+                        }
+                    }
+
+                    if (!permisoConcedido.value) {
+                        item {
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        verificarPermisoYIniciar(
                                             context,
-                                            "Selecciona al menos una categoría",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                            permisoConcedido,
+                                            lugarOfflineViewModel
+                                        )
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Buscar lugares")
+                                Text("\uD83D\uDD13 Volver a intentar permiso")
                             }
                         }
+                    }
 
-
-
-                        // Botón para volver a pedir permiso si no fue concedido
-                        if (!permisoConcedido.value) {
-                            item {
-                                Spacer(modifier = Modifier.height(24.dp))
-                                Button(
-                                    onClick = {
-                                        scope.launch {
-                                            verificarPermisoYIniciar(
-                                                context,
-                                                permisoConcedido,
-                                                lugarOfflineViewModel
-                                            )
-                                        }
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("\uD83D\uDD13 Volver a intentar permiso")
-                                }
-                            }
-                        }
-                        // 🟦 Indicador de carga si está cargando
-                        if (cargando) {
-                            item {
-                                Spacer(modifier = Modifier.height(24.dp))
-                                CircularProgressIndicator()
-                                Text("Cargando lugares desde base local...")
-                            }
+                    if (cargando) {
+                        item {
+                            Spacer(modifier = Modifier.height(24.dp))
+                            CircularProgressIndicator()
+                            Text("Cargando lugares desde base local...")
                         }
                     }
                 }
             }
         }
-        // Navegación al mapa si se concede el permiso y se seleccionan categorías
+
+
+
+
+    // Navegación al mapa si se concede el permiso y se seleccionan categorías
         LaunchedEffect(ubicacion, iniciarCarga) {
             // Fallback: si no hay ubicación en el ViewModel offline, pero sí en el global
             if (ubicacion == null && lugarViewModel.ubicacion.value != null) {
@@ -478,7 +432,10 @@ fun PantallaFiltroOffline(
             }
         }
     }
-}
+
+
+
+
 
 // Función auxiliar para manejar el permiso de ubicación
 private suspend fun verificarPermisoYIniciar(

@@ -149,15 +149,37 @@ fun iniciarMapa(
          }
 
          is AuthState.NoAutenticado -> {
-            PantallaLoginGoogle(
-               gpsViewModel = gpsViewModel,
-               authViewModel = authViewModel,
-               usuarioViewModel = usuarioViewModel,
-               networkMonitor = networkMonitor
-            )
+            Box(modifier = Modifier.fillMaxSize()) {
+               AndroidView(
+                  factory = {
+                     PlayerView(it).apply {
+                        player = exoPlayer
+                        useController = false
+                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                        layoutParams = FrameLayout.LayoutParams(
+                           ViewGroup.LayoutParams.MATCH_PARENT,
+                           ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                     }
+                  },
+                  modifier = Modifier.fillMaxSize()
+               )
+
+               PantallaLoginGoogle(
+                  gpsViewModel = gpsViewModel,
+                  authViewModel = authViewModel,
+                  usuarioViewModel = usuarioViewModel,
+                  networkMonitor = networkMonitor
+               )
+            }
          }
 
          is AuthState.Autenticado -> {
+            DisposableEffect(Unit) {
+               exoPlayer.release() // 🔥 Libera el video inmediatamente al autenticarse
+               onDispose { }
+            }
+
             PantallaMapaCompose(
                viewModelLugar = lugarViewModel,
                navegacionViewModel = navegacionViewModel,
@@ -165,10 +187,10 @@ fun iniciarMapa(
                navController = navController,
                themeViewModel = themeViewModel,
                networkMonitor = networkMonitor
-
             )
          }
       }
+
    }
 }
 

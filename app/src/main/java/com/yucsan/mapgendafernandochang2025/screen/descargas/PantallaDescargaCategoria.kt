@@ -59,6 +59,7 @@ import com.yucsan.mapgendafernandochang2025.util.coloresPorCategoriaPadre
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.text.font.FontWeight
 import com.google.android.gms.maps.model.LatLng
 import com.yucsan.mapgendafernandochang2025.ThemeViewModel
 
@@ -67,7 +68,7 @@ import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
 
 
 @SuppressLint("StateFlowValueCalledInComposition")
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PantallaFiltroDescarga(
     viewModelLugar: LugarViewModel = viewModel(),
@@ -126,259 +127,327 @@ fun PantallaFiltroDescarga(
                 .background(
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFFE1F4ED), Color(0xFFC9DFF4)
+                            Color(0xFFFFFFFF), Color(0xFFE1F4ED)
                         )
                     )
                 )
         ) {
 
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                        contentPadding = PaddingValues(
-                        start = 8.dp,
-                        end = 8.dp,
-                        bottom = 0.dp // <- este es el ajuste importante
-                    )
-                ) {
-                    item {
-                        var expandirMenu by remember { mutableStateOf(false) }
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 8.dp,
+                    end = 8.dp,
+                    bottom = 0.dp // <- este es el ajuste importante
+                )
+            ) {
 
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text("Ubicaciones Almacenadas:")
+                item {
+                    var expandirMenu by remember { mutableStateOf(false) }
 
-                            Box {
-                                OutlinedButton(onClick = { expandirMenu = true }) {
-                                        val ubicacionActual = ubicacionSeleccionada.value
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Ubicaciones Almacenadas",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp)
+                                .align(Alignment.CenterHorizontally),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
 
-                                        val ubicacionSeleccionadaTexto = remember(ubicacionesGuardadas, ubicacionActual) {
-                                            val match = ubicacionesGuardadas.find {
-                                                it.latitud == ubicacionActual?.first && it.longitud == ubicacionActual?.second
-                                            }
+                        Box {
 
-                                            match?.let { "📍 ${it.nombre} (${it.tipo})" }
-                                                ?: ubicacionActual?.let { "📍 %.4f, %.4f".format(it.first, it.second) }
-                                                ?: "Elegir ubicación"
-                                        }
+                            OutlinedButton(
+                                onClick = { expandirMenu = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.small, // Menos redondeado
+                                border = BorderStroke(
+                                    width = 2.dp, // Grosor del borde aumentado
+                                    color = MaterialTheme.colorScheme.primary // Color del borde
+                                ),
 
-                                        Text(ubicacionSeleccionadaTexto)
-                                    }
-
-                                    DropdownMenu(
-                                        expanded = expandirMenu,
-                                        onDismissRequest = { expandirMenu = false }
-                                    ) {
-                                        if (ubicacionesGuardadas.isEmpty()) {
-                                            DropdownMenuItem(
-                                                text = { Text("No hay ubicaciones guardadas") },
-                                                onClick = {}
-                                            )
-                                        } else {
-                                            ubicacionesGuardadas.forEach { ubi ->
-                                                DropdownMenuItem(
-                                                    text = { Text("${ubi.nombre} (${ubi.tipo})") },
-                                                    onClick = {
-                                                        viewModelLugar.actualizarUbicacionManual(
-                                                            LatLng(ubi.latitud, ubi.longitud)
-                                                        )
-                                                        expandirMenu = false
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
+                            ) {
+                                // Leemos siempre el último valor
+                                val ubicacionActual =
+                                    ubicacionSeleccionada.value  // StateFlow<LatLng?> convertido por collectAsState arriba
+                                // Buscamos si coincide con una guardada
+                                val match = ubicacionesGuardadas.firstOrNull {
+                                    it.latitud == ubicacionActual?.first && it.longitud == ubicacionActual.second
                                 }
-                            }
-                        }
 
-                        item {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(
-                                onClick = {
-                                    navController.navigate("mapaubi?modoSeleccionUbicacion=true&modoCrearRuta=false")
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("📍 Elegir zona de descarga en el mapa")
-                            }
-
-                            ubicacionSeleccionada.value?.let { (lat, lng) ->
-                                Text(
-                                    text = "Zona seleccionada: %.4f, %.4f".format(lat, lng),
-                                    color = Color.White,
-                                    modifier = Modifier.padding(top = 8.dp)
-                                )
-                            }
-                        }
-
-                        item {
-
-                            Spacer(Modifier.height(10.dp))
-
-                            Text("Descargas restantes: ${18 - seleccionadas.size}")
-
-                            Spacer(Modifier.height(8.dp))
-
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                categoriasPorGrupo.keys.forEach { categoria ->
-                                    val color = coloresPorCategoriaPadre[categoria]
-                                    FilterChip(
-                                        selected = categoriasActivas.contains(categoria),
-                                        onClick = {
-                                            if (categoriasActivas.contains(categoria)) {
-                                                categoriasActivas.remove(categoria)
-                                                // Eliminar subcategorías si se desactiva grupo
-                                                categoriasPorGrupo[categoria]?.forEach {
-                                                    seleccionadas.remove(it)
-                                                }
-                                            } else {
-                                                categoriasActivas.add(categoria)
-                                            }
-                                        },
-                                        label = { Text(categoria) },
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = color
-                                                ?: Color.Gray, // fondo cuando está seleccionado
-                                            containerColor = Color.Transparent, // fondo cuando NO está seleccionado
-                                            selectedLabelColor = Color.White,
-                                            labelColor = MaterialTheme.colorScheme.primary , // color del texto cuando no está seleccionado
-                                            selectedTrailingIconColor = Color.White,
-                                            disabledContainerColor = Color.Transparent,
-                                            disabledLabelColor = color?.copy(alpha = 0.4f)
-                                                ?: Color.LightGray
-                                        ),
-                                        border = BorderStroke(1.dp, color ?: Color.Gray)
+                                // Calculamos texto y color en cada recomposición
+                                val textoUbicacion = when {
+                                    match != null -> "📍 ${match.nombre} (${match.tipo})"
+                                    ubicacionActual != null -> "📍 %.4f, %.4f".format(
+                                        ubicacionActual.first,
+                                        ubicacionActual.second
                                     )
-                                }
-                            }
-                            if (mostrarBotonRefrescar) {
-                                Spacer(Modifier.height(12.dp))
-                                Button(
-                                    onClick = {
-                                        triggerRecomposicion++
-                                        mostrarBotonRefrescar = false
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(
-                                            0xFF00D43B
-                                        )
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("🔄 Refrescar Conteo", color = Color.Black)
-                                }
-                            }
-                        }
 
-                        //  Sección de subcategorías ---------------------------------------------------
-                        item {
-                            Spacer(Modifier.height(16.dp))
-                            categoriasActivas.forEach { categoria ->
+                                    else -> "Elegir ubicación"
+                                }
+                                val colorUbicacion = if (match != null || ubicacionActual != null)
+                                    Color(0xFFFF4000)
+                                else
+                                    MaterialTheme.colorScheme.primary // aquí el cambio
+
+
                                 Text(
-                                    text = categoria,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.padding(vertical = 4.dp)
+                                    text = textoUbicacion,
+                                    color = colorUbicacion,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (match != null || ubicacionActual != null) FontWeight.Bold else FontWeight.Normal)
                                 )
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                                    modifier = Modifier.fillMaxWidth()
+
+                                // Menú desplegable con resaltado
+                                DropdownMenu(
+                                    expanded = expandirMenu,
+                                    onDismissRequest = { expandirMenu = false }
                                 ) {
-                                    categoriasPorGrupo[categoria]?.forEach { subcategoria ->
-                                        val color = coloresPorCategoriaPadre[categoria]
-                                        FilterChip(
-                                            selected = seleccionadas.contains(subcategoria),
-                                            onClick = {
-                                                if (seleccionadas.contains(subcategoria)) {
-                                                    seleccionadas.remove(subcategoria)
-                                                } else {
-                                                    if (seleccionadas.size >= 18) {
-                                                        Toast.makeText(
-                                                            context,
-                                                            "Máximo 18 subcategorías seleccionadas",
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
-                                                    } else {
-                                                        seleccionadas.add(subcategoria)
-                                                    }
-                                                }
-                                            },
-                                            //--------------------------------------------------------------------------------*
-                                            label = {
-                                                Text(
-                                                    text = "$subcategoria (${conteoPorSubcategoria[subcategoria] ?: 0})",
-                                                    color = Color.White
-                                                )
-                                            },
-                                            colors = FilterChipDefaults.filterChipColors(
-                                                selectedContainerColor = color ?: Color.Gray,
-                                                selectedLabelColor = Color.White,
-                                                containerColor = color?.copy(alpha = 0.2f)
-                                                    ?: Color.LightGray
-                                            ),
-                                            border = BorderStroke(1.dp, color ?: Color.Gray)
+                                    if (ubicacionesGuardadas.isEmpty()) {
+                                        DropdownMenuItem(
+                                            text = { Text("No hay ubicaciones guardadas") },
+                                            onClick = {}
                                         )
+                                    } else {
+                                        ubicacionesGuardadas.forEach { ubi ->
+                                            val esSeleccionada = ubicacionSeleccionada.value?.let {
+                                                it.first == ubi.latitud && it.second == ubi.longitud
+                                            } == true
+
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(
+                                                        "${ubi.nombre} (${ubi.tipo})",
+                                                        color = if (esSeleccionada) Color(0xFFFF4000) else Color.Unspecified,
+                                                        fontWeight = if (esSeleccionada) FontWeight.Bold else FontWeight.Normal
+                                                    )
+                                                },
+                                                onClick = {
+                                                    viewModelLugar.actualizarUbicacionManual(
+                                                        LatLng(ubi.latitud, ubi.longitud)
+                                                    )
+                                                    expandirMenu = false
+                                                }
+                                            )
+                                        }
                                     }
                                 }
-                                Spacer(Modifier.height(8.dp))
                             }
+
+
                         }
+                    }
+                }
 
-                        item {
-                            Spacer(Modifier.height(16.dp))
-                            Button(
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            navController.navigate("mapaSeleccionUbicacion?desdeDescarga=true")
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text("📍 Elegir zona de descarga en el mapa")
+                    }
+
+                    ubicacionSeleccionada.value?.let { (lat, lng) ->
+                        Text(
+                            text = "Zona seleccionada: %.4f, %.4f".format(lat, lng),
+                            color = Color.Magenta,
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+                    }
+                }
+
+                item {
+
+                    Spacer(Modifier.height(6.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Descargas restantes: ${18 - seleccionadas.size}",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+
+                    Spacer(Modifier.height(6.dp))
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 12.dp)
+                    ) {
+                        categoriasPorGrupo.keys.forEach { categoria ->
+                            val color = coloresPorCategoriaPadre[categoria]
+                            FilterChip(
+                                selected = categoriasActivas.contains(categoria),
                                 onClick = {
-                                    if (seleccionadas.isNotEmpty()) {
-                                        scope.launch {
-                                            iniciarCarga = true
-                                            viewModelLugar.descargarLugaresPorSubcategoriasPersonalizadas(
-                                                context = context,
-                                                subcategorias = seleccionadas.toSet(),
-                                                apiKey = apiKey
-                                            )
-                                            triggerRecomposicion++ // Fuerza actualización del conteo
-
+                                    if (categoriasActivas.contains(categoria)) {
+                                        categoriasActivas.remove(categoria)
+                                        // Eliminar subcategorías si se desactiva grupo
+                                        categoriasPorGrupo[categoria]?.forEach {
+                                            seleccionadas.remove(it)
                                         }
                                     } else {
-                                        Toast.makeText(
-                                            context,
-                                            "Selecciona al menos una subcategoría",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                        categoriasActivas.add(categoria)
                                     }
                                 },
-                                enabled = seleccionadas.isNotEmpty() && !cargando,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Descargar Categorías Seleccionadas")
-                            }
-                        }
 
+                                label = { Text(categoria) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = color
+                                        ?: Color.Gray, // fondo cuando está seleccionado
+                                    containerColor = Color.Transparent, // fondo cuando NO está seleccionado
+                                    selectedLabelColor = Color.White,
+                                    labelColor = color ?: MaterialTheme.colorScheme.primary, // color del texto cuando no está seleccionado
+                                    selectedTrailingIconColor = Color.White,
+                                    disabledContainerColor = Color.Transparent,
+                                    disabledLabelColor = color?.copy(alpha = 0.4f)
+                                        ?: Color.LightGray
+                                ),
+                                border = BorderStroke(1.dp, color ?: Color.Gray)
+                            )
+                        }
                     }
-                    if (cargando) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)),
-                            contentAlignment = Alignment.Center
+                    if (mostrarBotonRefrescar) {
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = {
+                                triggerRecomposicion++
+                                mostrarBotonRefrescar = false
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(
+                                    0xFF00D43B
+                                )
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator()
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = "Descargando lugares desde Google Places...",
-                                    style = MaterialTheme.typography.bodyMedium
+                            Text("🔄 Refrescar Conteo", color = Color.Black)
+                        }
+                    }
+                }
+
+                //  Sección de subcategorías ---------------------------------------------------
+                item {
+                    Spacer(Modifier.height(16.dp))
+                    categoriasActivas.forEach { categoria ->
+                        val colorCategoria = coloresPorCategoriaPadre[categoria] ?: MaterialTheme.colorScheme.primary
+                        Text(
+                            text = categoria,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = colorCategoria,
+                            modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 4.dp)
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 12.dp)
+                        ) {
+                            categoriasPorGrupo[categoria]?.forEach { subcategoria ->
+                                val color = coloresPorCategoriaPadre[categoria]
+                                FilterChip(
+                                    selected = seleccionadas.contains(subcategoria),
+                                    onClick = {
+                                        if (seleccionadas.contains(subcategoria)) {
+                                            seleccionadas.remove(subcategoria)
+                                        } else {
+                                            if (seleccionadas.size >= 18) {
+                                                Toast.makeText(
+                                                    context,
+                                                    "Máximo 18 subcategorías seleccionadas",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            } else {
+                                                seleccionadas.add(subcategoria)
+                                            }
+                                        }
+                                    },
+                                    //--------------------------------------------------------------------------------*
+                                    label = {
+                                        Text(
+                                            text = "$subcategoria (${conteoPorSubcategoria[subcategoria] ?: 0})",
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = color ?: Color.Gray,
+                                        selectedLabelColor = Color.White,
+                                        containerColor = color?.copy(alpha = 0.2f)
+                                            ?: Color.LightGray
+                                    ),
+                                    border = BorderStroke(1.dp, color ?: Color.Gray)
                                 )
                             }
                         }
+                        Spacer(Modifier.height(8.dp))
                     }
+                }
 
+                item {
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            if (seleccionadas.isNotEmpty()) {
+                                scope.launch {
+                                    iniciarCarga = true
+                                    viewModelLugar.descargarLugaresPorSubcategoriasPersonalizadas(
+                                        context = context,
+                                        subcategorias = seleccionadas.toSet(),
+                                        apiKey = apiKey
+                                    )
+                                    triggerRecomposicion++ // Fuerza actualización del conteo
+
+                                }
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Selecciona al menos una subcategoría",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
+                        enabled = seleccionadas.isNotEmpty() && !cargando,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Descargar Categorías Seleccionadas")
+                    }
+                }
+
+            }
+            if (cargando) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Descargando lugares desde Google Places...",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
+
+        }
+    }
 
 
     LaunchedEffect(viewModelLugar.ubicacion.value, iniciarCarga) {
