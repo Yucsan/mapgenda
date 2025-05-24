@@ -135,9 +135,7 @@ fun PantallaMapaOffline(
             skipHiddenState = true
         )
     )
-
     val scope = rememberCoroutineScope()
-
     val peekHeightTarget = if (lugaresSeleccionadosParaRuta.isNotEmpty()) 95.dp else 45.dp
     val animatedPeekHeight by animateDpAsState(
         targetValue = peekHeightTarget,
@@ -145,21 +143,22 @@ fun PantallaMapaOffline(
         label = "peekHeightAnimation"
     )
     val mostrarDialogoGuardarRuta = remember { mutableStateOf(false) }
-
     val guardandoUbicacion = remember { mutableStateOf(false) }
-
-    var usarPrimerLugarComoUbicacion by remember { mutableStateOf(false) }
-
     val mostrarPantallaDescarga = remember { mutableStateOf(false) }
-    var ubicacionCercanaSeleccionada by remember { mutableStateOf<UbicacionLocal?>(null) }
 
     var latParaGuia by remember { mutableStateOf(0.0) }
     var lngParaGuia by remember { mutableStateOf(0.0) }
 
     val directionsService = remember { DirectionsService() }
-    val colorPrimario = MaterialTheme.colorScheme.primary
-    val colorInt = colorPrimario.toArgb()
 
+    val ubicacionFiltro by lugarRutaOfflineViewModel.ubicacion.collectAsState()
+
+    LaunchedEffect(Unit) {
+        if (ubicacionSeleccionada == null && ubicacionFiltro != null) {
+            ubicacionSeleccionada = LatLng(ubicacionFiltro!!.first, ubicacionFiltro!!.second)
+            Log.d("DEBUG_UBICACION", "📌 Se aplicó ubicación desde filtro: $ubicacionSeleccionada")
+        }
+    }
 
     LaunchedEffect(lugaresSeleccionadosParaRuta.size) {
         if (lugaresSeleccionadosParaRuta.isNotEmpty()) {
@@ -200,7 +199,6 @@ fun PantallaMapaOffline(
         "DEBUG_BTN",
         "🧭 pasoActual=$pasoActual, ubicacionSeleccionada=$ubicacionSeleccionada, mostrarDialogoGuardar=${mostrarDialogoGuardar.value}"
     )
-
 
 
     BottomSheetScaffold(
@@ -335,7 +333,6 @@ fun PantallaMapaOffline(
                                 }
                             }
                         }
-
                     }
                 }
             }
@@ -431,7 +428,6 @@ fun PantallaMapaOffline(
                             Text("Volver", style = MaterialTheme.typography.labelLarge)
                         }
 
-
                         if (pasoActual == 2 && modoCrearRuta) {
                                 Button(
                                     onClick = { modoTransporte = "driving" },
@@ -457,8 +453,6 @@ fun PantallaMapaOffline(
                             }
                         }
 
-
-
                         if (pasoActual == 1) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Column(
@@ -475,7 +469,6 @@ fun PantallaMapaOffline(
                             }
                         }
                     }
-
 
                     if (pasoActual == 2 && !modoSeleccionUbicacion) {
                         Column(
@@ -576,7 +569,6 @@ fun PantallaMapaOffline(
                                             }
                                         }
 
-
                                         val intent = android.content.Intent(
                                             android.content.Intent.ACTION_VIEW,
                                             android.net.Uri.parse(uri)
@@ -610,7 +602,6 @@ fun PantallaMapaOffline(
                                     onClick = {
                                         mostrarDialogoGuardarRuta.value = true
 
-
                                         val seleccionada = ubicacionSeleccionada
                                         if (seleccionada == null) {
                                             Toast.makeText(context, "Primero selecciona una ubicación en el mapa o usa el buscador", Toast.LENGTH_SHORT).show()
@@ -622,7 +613,6 @@ fun PantallaMapaOffline(
                                             val dLng = ubi.longitud - seleccionada.longitude
                                             dLat * dLat + dLng * dLng
                                         }
-
 
                                         // Si no existe una ubicación similar, la guardamos automáticamente
                                         if (ubicacionExistente == null && !guardandoUbicacion.value) {
@@ -639,9 +629,7 @@ fun PantallaMapaOffline(
                                             }
                                             return@SmallFloatingActionButton
                                         }
-
                                         mostrarDialogoGuardarRuta.value = true
-
                                     },
                                     containerColor = Color(0xFF1976D2),
                                     contentColor = Color.White,
@@ -650,48 +638,9 @@ fun PantallaMapaOffline(
                                         style = TextStyle(fontSize = 12.sp)
                                     )
                                 }
-
                             }
-
                         }
                     }
-
-
-                    if (pasoActual == 1 && ubicacionSeleccionada != null) {
-                        ExtendedFloatingActionButton(
-                            onClick = {
-                                if (modoSeleccionUbicacion) {
-                                    // ✅ Solo selección y vuelve
-                                    onUbicacionConfirmada?.invoke(ubicacionSeleccionada!!)
-                                    lugarRutaOfflineViewModel.actualizarUbicacionManual(
-                                        ubicacionSeleccionada!!
-                                    )
-                                    googleMap?.moveCamera(
-                                        CameraUpdateFactory.newLatLngZoom(
-                                            ubicacionSeleccionada!!,
-                                            15f
-                                        )
-                                    )
-                                    navController.popBackStack()
-                                } else {
-                                    // 📝 Muestra diálogo para guardar
-                                    mostrarDialogoGuardar.value = true
-                                }
-                            },
-                            icon = { Icon(Icons.Default.Check, contentDescription = "Confirmar") },
-                            text = { Text("Confirmar zona base") },
-                            containerColor = Color(0xFFF77C00),
-                            contentColor = Color.White,
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(16.dp)
-                        )
-                    }
-
-
-
-
-
 
                     if (latLngSeleccionado != null && modoAgregarLugar) {
                         AgregarLugarDialog(
@@ -775,7 +724,6 @@ fun PantallaMapaOffline(
 
                                     scope.launch {
                                         var polyline: String? = null
-
                                         try {
                                             val origin = "${primerLugar.latitud},${primerLugar.longitud}"
                                             val destination = "${ultimoLugar.latitud},${ultimoLugar.longitud}"
@@ -785,23 +733,43 @@ fun PantallaMapaOffline(
                                                     .joinToString("|") { "${it.latitud},${it.longitud}" }
                                             } else ""
 
+                                            val modoPrimario = modoTransporte
+                                            var modoActual = modoPrimario
+
                                             val response = directionsService.api.obtenerRutaConWaypoints(
                                                 origin = origin,
                                                 destination = destination,
                                                 waypoints = waypoints,
-                                                mode = modoTransporte,
+                                                mode = modoPrimario,
                                                 apiKey = Secrets.GOOGLE_MAPS_API_KEY
                                             )
 
                                             polyline = response.routes.firstOrNull()?.overview_polyline?.points
+
+                                            if (polyline == null && modoPrimario == "bicycling") {
+                                                // Reintenta con DRIVING
+                                                Log.w("RUTA_GUARDAR", "❌ No se pudo obtener ruta en bici, reintentando con coche...")
+                                                modoActual = "driving"
+                                                val retryResponse = directionsService.api.obtenerRutaConWaypoints(
+                                                    origin = origin,
+                                                    destination = destination,
+                                                    waypoints = waypoints,
+                                                    mode = modoActual,
+                                                    apiKey = Secrets.GOOGLE_MAPS_API_KEY
+                                                )
+                                                polyline = retryResponse.routes.firstOrNull()?.overview_polyline?.points
+
+                                                if (polyline != null) {
+                                                    Toast.makeText(context, "⚠️ Ruta en bici no disponible. Se usó modo coche.", Toast.LENGTH_LONG).show()
+                                                }
+                                            }
+
+                                            Log.d("RUTA_GUARDAR", "✅ Polyline con modo=$modoActual: ${polyline?.take(50)}")
+
                                         } catch (e: Exception) {
                                             Log.e("RUTA_GUARDAR", "Error al obtener ruta: ${e.message}")
                                         }
 
-                                        if (polyline == null) {
-                                            Toast.makeText(context, "⚠️ No se pudo generar la ruta", Toast.LENGTH_SHORT).show()
-                                            return@launch
-                                        }
 
                                         rutaViewModel.crearRuta(
                                             nombre = nombreRuta,
@@ -826,15 +794,8 @@ fun PantallaMapaOffline(
                                 }
                             }
                         )
-
                     }
-
-
-
-
-
                 }
-
             }
         }
     )
@@ -855,8 +816,5 @@ fun PantallaMapaOffline(
             context = context
         )
     }
-
-
-
 }
 

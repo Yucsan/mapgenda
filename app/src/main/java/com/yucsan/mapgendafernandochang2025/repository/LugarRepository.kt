@@ -178,9 +178,24 @@ class LugarRepository(private val lugarDao: LugarDao) {
             )
         }
 
-
         val backend = BackendLugarService()
         backend.subirLugaresEnLote(lugaresValidados)
     }
+
+    suspend fun contarLugaresPorSubcategoriaFiltrando(
+        latitud: Double,
+        longitud: Double,
+        radio: Float
+    ): Map<String, Int> {
+        return lugarDao
+            .contarSubcategoriasCercanas(latitud, longitud, radio)
+            .associate { it.subcategoria to it.cantidad }
+    }
+
+
+
+
+
+
 
 }

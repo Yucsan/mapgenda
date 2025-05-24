@@ -4,6 +4,7 @@ import androidx.room.*
 import com.yucsan.mapgendafernandochang2025.entidad.ConteoSubcategoria
 
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
+import com.yucsan.mapgendafernandochang2025.entidad.SubcategoriaConteo
 
 import kotlinx.coroutines.flow.Flow
 
@@ -97,6 +98,25 @@ interface LugarDao {
 fun obtenerPorSubcategoriasSinFiltroGeografico(
     subtipos: List<String>
 ): Flow<List<LugarLocal>>
+
+
+    @Query(
+        """
+    SELECT subcategoria, COUNT(*) as cantidad
+    FROM lugares
+    WHERE (
+        (latitud - :lat) * (latitud - :lat) + 
+        (longitud - :lng) * (longitud - :lng)
+    ) <= (:radio * :radio) / (111320.0 * 111320.0)
+    GROUP BY subcategoria
+    """
+    )
+    suspend fun contarSubcategoriasCercanas(
+        lat: Double,
+        lng: Double,
+        radio: Float
+    ): List<SubcategoriaConteo>
+
 
 
 

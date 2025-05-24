@@ -27,4 +27,11 @@ data class LugarLocal(
 )
 
 
+data class SubcategoriaConteo(
+    val subcategoria: String,
+    val cantidad: Int
+)
+
+
+
 

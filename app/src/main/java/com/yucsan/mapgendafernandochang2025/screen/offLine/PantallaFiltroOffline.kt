@@ -61,7 +61,9 @@ fun PantallaFiltroOffline(
     var distanciaFiltro by remember { mutableStateOf(10000f) }
     var iniciarCarga by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val conteoPorSubcategoria by lugarOfflineViewModel.conteoPorSubcategoria.collectAsState()
+
+    val conteoPorSubcategoria by lugarOfflineViewModel.conteoPorSubcategoriaFiltrado.collectAsState()
+
     var visible by remember { mutableStateOf(false) }
     val categoriasActivas = remember { mutableStateListOf<String>() }
     val categoriasActivasOrdenadas =

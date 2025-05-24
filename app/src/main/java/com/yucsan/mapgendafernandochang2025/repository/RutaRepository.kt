@@ -1,6 +1,9 @@
 package com.yucsan.mapgendafernandochang2025.repository
 
 
+import androidx.annotation.OptIn
+import androidx.media3.common.util.Log
+import androidx.media3.common.util.UnstableApi
 import com.yucsan.mapgendafernandochang2025.dao.RutaDao
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
 import com.yucsan.mapmapgendafernandochang2025.entidad.RutaConLugares
@@ -11,6 +14,7 @@ import kotlinx.coroutines.flow.Flow
 
 class RutaRepository(private val dao: RutaDao) {
 
+    @OptIn(UnstableApi::class)
     suspend fun crearRutaConLugares(
         nombre: String,
         categoria: String?,
@@ -18,6 +22,9 @@ class RutaRepository(private val dao: RutaDao) {
         lugares: List<LugarLocal>,
         polylineCodificada: String? = null
     ) {
+        Log.d("RutaRepository", "🗂️ Guardando ruta y lugares asociados")
+        try {
+
         val rutaId = dao.insertarRuta(
             RutaEntity(
                 nombre = nombre,
@@ -35,6 +42,11 @@ class RutaRepository(private val dao: RutaDao) {
             )
         }
         dao.insertarReferencias(refs)
+
+        } catch (e: Exception) {
+            Log.e("RutaRepository", "❌ Error guardando ruta: ${e.message}", e)
+            throw e
+        }
     }
 
     fun obtenerRutasConLugares(): Flow<List<RutaConLugares>> {

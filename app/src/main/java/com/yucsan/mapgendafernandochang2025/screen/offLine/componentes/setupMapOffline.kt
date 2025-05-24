@@ -54,7 +54,8 @@ fun setupMapOffline(
                 it.latitud == lugar.latitud && it.longitud == lugar.longitud
             }.takeIf { it != -1 }
 
-            MapPainter.pintarLugar(context, map, lugar, index)
+            val marker = MapPainter.pintarLugar(context, map, lugar, index)
+            marker.tag = lugar.id
         }
 
         // ⬇️ Dibujar polilínea si hay al menos dos

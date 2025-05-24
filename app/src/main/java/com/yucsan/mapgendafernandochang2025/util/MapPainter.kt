@@ -47,13 +47,17 @@ object MapPainter {
             }
         }
 
-        return map.addMarker(
+        val marker = map.addMarker(
             MarkerOptions()
                 .position(LatLng(lugar.latitud, lugar.longitud))
-                .title(lugar.nombre)
+                .title(lugar.nombre) // se puede dejar solo para mostrar, pero no para lógica
                 .snippet(lugar.direccion)
                 .icon(icono)
-        )!!
+        )
+
+        marker?.tag = lugar.id // 👈 CLAVE: asignamos el ID único como tag
+        return marker!!
+
     }
 
     fun pintarUbicacion(

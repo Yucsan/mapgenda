@@ -145,17 +145,20 @@ fun MapaOfflineView(
                 map.setOnMarkerClickListener { marker ->
                     if (isSoloLectura) return@setOnMarkerClickListener false
 
-                    val lugar = lugares.find { it.nombre == marker.title }
+                    val lugarId = marker.tag as? String
+                    val lugar = lugares.find { it.id == lugarId }
+
                     val ubicacion = marker.tag as? UbicacionLocal
 
                     if (modoCrearRuta) {
                         when {
-                            lugar != null && !lugaresSeleccionadosParaRuta.contains(lugar) -> {
+                            lugar != null && lugaresSeleccionadosParaRuta.none { it.id == lugar.id } -> {
                                 lugaresSeleccionadosParaRuta.add(lugar)
                                 marker.setIcon(IconosMapa.seleccionado(context))
                                 Log.d("MAPA_RUTA", "📍 Lugar agregado: ${lugar.nombre}")
                             }
-                            ubicacion != null -> {
+                            marker.tag is UbicacionLocal -> {
+                                val ubicacion = marker.tag as UbicacionLocal
                                 val lugarDesdeUbicacion = ubicacion.toLugarLocalParaRuta()
                                 if (!lugaresSeleccionadosParaRuta.any { it.id == lugarDesdeUbicacion.id }) {
                                     lugaresSeleccionadosParaRuta.add(lugarDesdeUbicacion)
@@ -167,6 +170,7 @@ fun MapaOfflineView(
                     } else {
                         if (lugar != null) onLugarSeleccionado(lugar)
                     }
+
 
                     marker.showInfoWindow()
                     false

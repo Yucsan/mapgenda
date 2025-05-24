@@ -34,16 +34,17 @@ class RutaViewModel(private val repository: RutaRepository) : ViewModel() {
 
     fun crearRuta(nombre: String, categoria: String?, ubicacionId: Long?, lugares: List<LugarLocal>, polylineCodificada: String? = null) {
         viewModelScope.launch {
-            repository.crearRutaConLugares(
-                nombre = nombre,
-                categoria = categoria,
-                ubicacionId = ubicacionId,
-                lugares = lugares,
-                polylineCodificada = polylineCodificada
-            )
+            Log.d("RutaViewModel", "🔧 creandoRuta(nombre=$nombre, ubicacionId=$ubicacionId, lugares=${lugares.size}, polyline=${polylineCodificada?.take(20)}...)")
+
+            try {
+                repository.crearRutaConLugares(nombre, categoria, ubicacionId, lugares, polylineCodificada)
+                Log.d("RutaViewModel", "✅ Ruta guardada exitosamente")
+            } catch (e: Exception) {
+                Log.e("RutaViewModel", "❌ Error al guardar ruta: ${e.message}", e)
+            }
         }
-        Log.d("RutaViewModel", "Ruta creada: $nombre")
     }
+
 
     fun eliminarRuta(rutaId: Long) {
         viewModelScope.launch {

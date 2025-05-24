@@ -20,8 +20,13 @@ import com.yucsan.aventurafernandochang2025.room.DatabaseProvider
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
 
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
+
+
 
 
 class LugarRutaOfflineViewModel(application: Application) : AndroidViewModel(application) {
@@ -63,6 +68,10 @@ class LugarRutaOfflineViewModel(application: Application) : AndroidViewModel(app
 
     private val _debeAplicarFiltro = MutableStateFlow(false)
 
+    private val _conteoPorSubcategoriaFiltrado = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val conteoPorSubcategoriaFiltrado: StateFlow<Map<String, Int>> = _conteoPorSubcategoriaFiltrado
+
+
     fun dispararFiltro() {
         _debeAplicarFiltro.value = true
     }
@@ -97,8 +106,30 @@ class LugarRutaOfflineViewModel(application: Application) : AndroidViewModel(app
                     _lugaresOffline.value = lugares
                     _debeAplicarFiltro.value = false
                 }
+
         }
+
+        viewModelScope.launch {
+            combine(_ubicacion.filterNotNull(), _radio) { ubicacion, radio ->
+                ubicacion to radio
+            }.flatMapLatest { (ubicacion, radio) ->
+                flow {
+                    val conteo = repository.contarLugaresPorSubcategoriaFiltrando(
+                        latitud = ubicacion.first,
+                        longitud = ubicacion.second,
+                        radio = radio
+                    )
+                    emit(conteo)
+                }
+            }.collect { conteosFiltrados ->
+                _conteoPorSubcategoriaFiltrado.value = conteosFiltrados
+            }
+        }
+
+
     }
+
+
 
     // Agregar o quitar una categoría del filtro
     fun toggleCategoriaOffline(categoria: String) {
@@ -253,6 +284,9 @@ class LugarRutaOfflineViewModel(application: Application) : AndroidViewModel(app
             }
         }
     }
+
+
+
 
 
 
