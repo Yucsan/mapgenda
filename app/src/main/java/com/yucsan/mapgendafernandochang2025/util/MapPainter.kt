@@ -3,7 +3,11 @@ package com.yucsan.mapgendafernandochang2025.util
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Typeface
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.*
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
@@ -12,11 +16,6 @@ import com.yucsan.mapgendafernandochang2025.R
 
 object MapPainter {
 
-    private fun getIconoPersonalizado(context: Context, drawableId: Int, size: Int = 120): BitmapDescriptor {
-        val bitmap = BitmapFactory.decodeResource(context.resources, drawableId)
-        val scaled = Bitmap.createScaledBitmap(bitmap, size, size, false)
-        return BitmapDescriptorFactory.fromBitmap(scaled)
-    }
 
     fun pintarLugar(
         context: Context,
@@ -24,40 +23,41 @@ object MapPainter {
         lugar: LugarLocal,
         index: Int? = null
     ): Marker {
+        val drawableRes = when (lugar.categoriaGeneral) {
+            "restaurant" -> R.drawable.restaurant
+            "cafe" -> R.drawable.cafe
+            "clothing_store" -> R.drawable.shop
+            "park" -> R.drawable.tree
+            "tourist_attraction" -> R.drawable.turistatraction
+            "museum" -> R.drawable.museum
+            "art_gallery" -> R.drawable.art_galery
+            "aquarium" -> R.drawable.acuario
+            "stadium" -> R.drawable.estadio
+            "night_club" -> R.drawable.night_club
+            "movie_theater" -> R.drawable.cine
+            "casino" -> R.drawable.casino
+            "lodging" -> R.drawable.hotel
+            "bus_station", "train_station", "subway_station" -> R.drawable.bus
+            "custom" -> R.drawable.custom
+            else -> R.drawable.custom
+        }
+
         val icono = if (index != null) {
             IconosMapa.generarIconoNumerado(context, index + 1)
         } else {
-            when (lugar.categoriaGeneral) {
-                "restaurant" -> getIconoPersonalizado(context, R.drawable.restaurant)
-                "cafe" -> getIconoPersonalizado(context, R.drawable.cafe)
-                "clothing_store" -> getIconoPersonalizado(context, R.drawable.shop)
-                "park" -> getIconoPersonalizado(context, R.drawable.tree)
-                "tourist_attraction" -> getIconoPersonalizado(context, R.drawable.turistatraction)
-                "museum" -> getIconoPersonalizado(context, R.drawable.museum)
-                "art_gallery" -> getIconoPersonalizado(context, R.drawable.art_galery)
-                "aquarium" -> getIconoPersonalizado(context, R.drawable.acuario)
-                "stadium" -> getIconoPersonalizado(context, R.drawable.estadio)
-                "night_club" -> getIconoPersonalizado(context, R.drawable.night_club)
-                "movie_theater" -> getIconoPersonalizado(context, R.drawable.cine)
-                "casino" -> getIconoPersonalizado(context, R.drawable.casino)
-                "lodging" -> getIconoPersonalizado(context, R.drawable.hotel)
-                "bus_station", "train_station", "subway_station" -> getIconoPersonalizado(context, R.drawable.bus)
-                "custom" -> getIconoPersonalizado(context, R.drawable.custom)
-                else -> BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE)
-            }
+            generarIconoConTextoSobreImagen(context, lugar.nombre, drawableRes)
         }
 
         val marker = map.addMarker(
             MarkerOptions()
                 .position(LatLng(lugar.latitud, lugar.longitud))
-                .title(lugar.nombre) // se puede dejar solo para mostrar, pero no para lógica
+                .title(lugar.nombre)
                 .snippet(lugar.direccion)
                 .icon(icono)
         )
 
-        marker?.tag = lugar.id // 👈 CLAVE: asignamos el ID único como tag
+        marker?.tag = lugar.id
         return marker!!
-
     }
 
     fun pintarUbicacion(
@@ -92,4 +92,80 @@ object MapPainter {
                 .geodesic(true)
         )
     }
+
+    fun generarIconoConTextoSobreImagen(
+        context: Context,
+        texto: String,
+        drawableRes: Int
+    ): BitmapDescriptor {
+        val baseBitmap = BitmapFactory.decodeResource(context.resources, drawableRes)
+        val scaledBitmap = Bitmap.createScaledBitmap(baseBitmap, 150, 150, false)
+
+        val mutableBitmap = scaledBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(mutableBitmap)
+
+        val textPaint = Paint().apply {
+            color = Color.parseColor("#7100D4") // magenta oscuro
+            textSize = 35f
+            isAntiAlias = true
+            textAlign = Paint.Align.LEFT
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+
+        val backgroundPaint = Paint().apply {
+            color = Color.argb(180, 255, 255, 255) // fondo blanco semitransparente
+            style = Paint.Style.FILL
+        }
+
+        val maxWidth = mutableBitmap.width - 20f
+        val lines = wrapText(texto, textPaint, maxWidth, maxLines = 2)
+
+        val lineHeight = 35f
+        val padding = 12f
+        val totalHeight = lineHeight * lines.size + padding * 2
+
+        val rect = RectF(
+            0f,
+            mutableBitmap.height - totalHeight - 5f,
+            mutableBitmap.width.toFloat(),
+            mutableBitmap.height.toFloat()
+        )
+
+        canvas.drawRoundRect(rect, 8f, 8f, backgroundPaint)
+
+        lines.forEachIndexed { index, line ->
+            val x = 10f
+            val y = mutableBitmap.height - totalHeight + padding + (index + 1) * lineHeight
+            canvas.drawText(line, x, y, textPaint)
+        }
+
+        return BitmapDescriptorFactory.fromBitmap(mutableBitmap)
+    }
+
+    private fun wrapText(text: String, paint: Paint, maxWidth: Float, maxLines: Int): List<String> {
+        val words = text.split(" ")
+        val lines = mutableListOf<String>()
+        var currentLine = ""
+
+        for (word in words) {
+            val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
+            if (paint.measureText(testLine) <= maxWidth) {
+                currentLine = testLine
+            } else {
+                lines.add(currentLine)
+                currentLine = word
+                if (lines.size == maxLines - 1) break
+            }
+        }
+
+        if (lines.size < maxLines && currentLine.isNotEmpty()) {
+            lines.add(currentLine)
+        }
+
+        return lines
+    }
+
+
+
+
 }
