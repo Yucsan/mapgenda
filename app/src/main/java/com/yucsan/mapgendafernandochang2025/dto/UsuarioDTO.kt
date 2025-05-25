@@ -13,5 +13,6 @@ data class UsuarioDTO(
     val ciudad: String?,
     val direccion: String?,
     val descripcion: String?,
+    val fotoPerfilUrl: String? = null,
     val verificado: Boolean
 )

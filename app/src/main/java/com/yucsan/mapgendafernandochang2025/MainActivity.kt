@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -15,12 +17,14 @@ import com.yucsan.aventurafernandochang2025.viewmodel.RutaViewModelFactory
 import com.yucsan.mapgendafernandochang2025.repository.UsuarioRepository
 import com.yucsan.mapgendafernandochang2025.repository.RutaRepository
 import com.yucsan.mapgendafernandochang2025.repository.UbicacionRepository
+import com.yucsan.mapgendafernandochang2025.servicio.backend.RetrofitInstance
 import com.yucsan.mapgendafernandochang2025.viewmodel.RutaViewModel
 
 import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModelFactory
 
 import com.yucsan.mapgendafernandochang2025.ui.theme.MapGendaFernandoChang2025Theme
+import com.yucsan.mapgendafernandochang2025.util.Auth.AuthState
 import com.yucsan.mapgendafernandochang2025.util.state.NetworkMonitor
 import com.yucsan.mapgendafernandochang2025.viewmodel.*
 
@@ -64,6 +68,17 @@ class MainActivity : ComponentActivity() {
             val authViewModel: AuthViewModel = viewModel(
                 factory = AuthViewModelFactory(usuarioViewModel)
             )
+
+            val authState by authViewModel.authState.collectAsState()
+
+            LaunchedEffect(authState) {
+                val token = (authState as? AuthState.Autenticado)?.token
+                RetrofitInstance.setTokenProvider { token }
+            }
+
+            authViewModel.initAuth(context)
+
+
 
             MapGendaFernandoChang2025Theme(darkTheme = isDarkMode) {
                 MainScreen(

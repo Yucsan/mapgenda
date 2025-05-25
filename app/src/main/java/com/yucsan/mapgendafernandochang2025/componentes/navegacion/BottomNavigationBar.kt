@@ -8,17 +8,15 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.yucsan.mapgendafernandochang2025.util.state.AuthState
+import com.yucsan.mapgendafernandochang2025.util.Auth.AuthState
 import kotlinx.coroutines.flow.StateFlow
-import androidx.compose.runtime.collectAsState
-
+import androidx.navigation.NavDestination.Companion.hierarchy
 
 
 @Composable
@@ -32,30 +30,24 @@ fun BottomNavigationBar(navController: NavController, authState: StateFlow<AuthS
 
     val estado by authState.collectAsState()
     val sesionActiva = estado is AuthState.Autenticado
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
 
-    NavigationBar(
-        modifier = Modifier.navigationBarsPadding()
-    ) {
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry?.destination?.route
-
+    NavigationBar(modifier = Modifier.navigationBarsPadding()) {
         items.forEach { screen ->
+            val selected = currentDestination
+                ?.hierarchy
+                ?.any { it.route == screen.route }
+                ?: false
+
             NavigationBarItem(
-                icon = {
-                    Icon(
-                        imageVector = screen.icon,
-                        contentDescription = screen.title,
-                        modifier = Modifier.height(30.dp)
-                    )
-                },
-                label = { Text(text = screen.title) },
-                selected = currentRoute == screen.route,
+                icon    = { Icon(screen.icon, screen.title, Modifier.height(30.dp)) },
+                label   = { Text(screen.title) },
+                selected = selected,
                 onClick = {
-                    if (sesionActiva && currentRoute != screen.route) {
+                    if (sesionActiva && !selected) {
                         navController.navigate(screen.route) {
-                            popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
-                            }
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
                             launchSingleTop = true
                             restoreState = true
                         }
@@ -66,4 +58,3 @@ fun BottomNavigationBar(navController: NavController, authState: StateFlow<AuthS
         }
     }
 }
-

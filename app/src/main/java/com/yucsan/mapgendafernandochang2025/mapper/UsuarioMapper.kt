@@ -15,6 +15,26 @@ fun UsuarioDTO.toEntity(): UsuarioEntity {
         ciudad = ciudad,
         direccion = direccion,
         descripcion = descripcion,
+        fotoPerfilUri = fotoPerfilUrl,
         verificado = verificado
+    )
+}
+
+
+
+fun UsuarioEntity.toDTO(): UsuarioDTO {
+    return UsuarioDTO(
+        id = java.util.UUID.fromString(id),
+        nombre = nombre,
+        apellido = apellido,
+        email = email,
+        telefono = telefono,
+        rol = rol,
+        pais = pais,
+        ciudad = ciudad,
+        direccion = direccion,
+        descripcion = descripcion,
+        verificado = verificado,
+        fotoPerfilUrl = fotoPerfilUri // asegúrate de que UsuarioDTO tenga este campo
     )
 }

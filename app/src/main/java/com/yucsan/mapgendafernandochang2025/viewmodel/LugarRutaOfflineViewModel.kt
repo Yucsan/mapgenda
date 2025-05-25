@@ -76,6 +76,11 @@ class LugarRutaOfflineViewModel(application: Application) : AndroidViewModel(app
         _debeAplicarFiltro.value = true
     }
 
+    fun limpiarUbicacion() {
+        _ubicacion.value = null
+    }
+
+
     init {
         viewModelScope.launch {
             _debeAplicarFiltro

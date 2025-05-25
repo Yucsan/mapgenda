@@ -92,6 +92,7 @@ fun MainNavigation(
 
         }
 
+
         composable(Ruta.PantallaPerfil.ruta) {
             PantallaPerfil(
                 lugarViewModel,
@@ -162,7 +163,6 @@ fun MainNavigation(
             )
         }
 
-
         composable("rutas") {
             PantallaRutas(rutaViewModel, navController)
         }
@@ -182,18 +182,6 @@ fun MainNavigation(
                 navController = navController
             )
         }
-
-        composable("pantallaTabsDescarga") {
-            PantallaTabsDescarga(
-                lugarViewModel = lugarViewModel,
-                ubicacionViewModel = ubicacionViewModel,
-                navController = navController,
-                themeViewModel = themeViewModel
-            )
-        }
-
-
-
 
     }
 }

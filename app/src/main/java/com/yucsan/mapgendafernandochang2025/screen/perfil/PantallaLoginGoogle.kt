@@ -1,6 +1,7 @@
 package com.yucsan.mapgendafernandochang2025.screen.perfil
 
 import android.app.Activity
+import android.content.Context
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,6 +29,7 @@ import com.yucsan.mapgendafernandochang2025.viewmodel.AuthViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.GPSViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.UsuarioViewModel
 import com.yucsan.mapgendafernandochang2025.mapper.toEntity
+import com.yucsan.mapgendafernandochang2025.servicio.backend.RetrofitInstance
 import com.yucsan.mapgendafernandochang2025.servicio.log.ApiService
 import com.yucsan.mapgendafernandochang2025.util.state.NetworkMonitor
 import kotlinx.coroutines.CoroutineScope
@@ -43,7 +45,8 @@ fun PantallaLoginGoogle(
     gpsViewModel: GPSViewModel,
     authViewModel: AuthViewModel,
     usuarioViewModel: UsuarioViewModel,
-    networkMonitor: NetworkMonitor
+    networkMonitor: NetworkMonitor,
+    context: Context
 ) {
     val context = LocalContext.current
     val activity = context as Activity
@@ -67,11 +70,12 @@ fun PantallaLoginGoogle(
 
 // .baseUrl("https://backend-mapgenda.onrender.com/aventura/")  ********************************************************************************** direccion api en RENDER
             val client = Retrofit.Builder()
-                .baseUrl("https://backend-mapgenda.onrender.com/aventura/")
+                .baseUrl("http://192.168.0.11:8080/aventura/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
 
-            val service = client.create(ApiService::class.java)
+            val service = RetrofitInstance.api
+
 
             CoroutineScope(Dispatchers.IO).launch {
                 try {
@@ -85,8 +89,7 @@ fun PantallaLoginGoogle(
 
                             withContext(Dispatchers.Main) {
                                 gpsViewModel.start()
-                                authViewModel.iniciarSesion(usuario.toEntity())
-                                usuarioViewModel.guardarUsuario(usuario.toEntity()) // ✅ Aquí se guarda localmente
+                                authViewModel.iniciarSesion(context, usuario.toEntity(), token)
                             }
                         }
                     }

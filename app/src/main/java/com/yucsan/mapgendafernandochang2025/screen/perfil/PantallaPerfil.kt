@@ -3,6 +3,7 @@ package com.yucsan.mapgendafernandochang2025.screen.perfil
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -33,6 +34,9 @@ import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.yucsan.mapgendafernandochang2025.componentes.Ruta
+import com.yucsan.mapgendafernandochang2025.mapper.toDTO
+import com.yucsan.mapgendafernandochang2025.servicio.backend.RetrofitInstance
+import com.yucsan.mapgendafernandochang2025.util.CloudinaryUploader
 import com.yucsan.mapgendafernandochang2025.viewmodel.AuthViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.UsuarioViewModel
@@ -52,13 +56,19 @@ fun PantallaPerfil(viewModel: LugarViewModel,
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var nuevaFotoUri by remember { mutableStateOf<String?>(null) }
+    val usuario by usuarioViewModel.usuario.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.cargarConteoPorCategoria()
         usuarioViewModel.cargarUsuario()
+        usuario?.let {
+            usuarioViewModel.sincronizarUsuarioConBackend(it.id)
+        }
+
     }
 
-    val usuario by usuarioViewModel.usuario.collectAsState()
+
+
     val coroutineScope = rememberCoroutineScope()
 
     val pickImageLauncher = rememberLauncherForActivityResult(
@@ -78,6 +88,8 @@ fun PantallaPerfil(viewModel: LugarViewModel,
     var nuevoPais by remember { mutableStateOf(TextFieldValue("")) }
     var nuevaCiudad by remember { mutableStateOf(TextFieldValue("")) }
     var showCerrarSesionDialog by remember { mutableStateOf(false) }
+    var isUploading by remember { mutableStateOf(false) }
+
 
 
     ModalNavigationDrawer(
@@ -112,6 +124,18 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                         }
                     }
                 )
+
+                if (isUploading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.4f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+
             }
         ) {
             Box(
@@ -125,7 +149,8 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                 contentAlignment = Alignment.Center,
             ) {
                 LazyColumn(
-                    modifier = Modifier.wrapContentHeight()
+                    modifier = Modifier
+                        .wrapContentHeight()
                         .fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -177,16 +202,54 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Button(
                                     onClick = {
-                                        val actualizado =
-                                            usuario!!.copy(fotoPerfilUri = nuevaFotoUri)
                                         coroutineScope.launch {
-                                            usuarioViewModel.guardarUsuario(actualizado)
-                                            nuevaFotoUri = null
+                                            nuevaFotoUri?.let { uriString ->
+                                                val uri = Uri.parse(uriString)
+                                                isUploading = true
+                                                try {
+                                                    val secureUrl =
+                                                        CloudinaryUploader.subirImagenDesdeUri(
+                                                            context,
+                                                            uri
+                                                        )
+                                                    if (secureUrl != null) {
+                                                        val actualizado = usuario!!.copy(fotoPerfilUri = secureUrl)
+                                                        usuarioViewModel.guardarUsuario(actualizado)
+
+                                                        val dto = actualizado.toDTO()
+                                                        RetrofitInstance.api.actualizarUsuario(actualizado.id.toString(), dto)
+
+                                                        nuevaFotoUri = null
+
+                                                        // ✅ Confirmación visual
+                                                        Toast.makeText(
+                                                            context,
+                                                            "✅ Imagen subida con éxito",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    } else {
+                                                        Toast.makeText(
+                                                            context,
+                                                            "❌ Error: URL nula",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    }
+                                                } catch (e: Exception) {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "⚠️ Error al subir imagen: ${e.message}",
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+                                                } finally {
+                                                    isUploading = false
+                                                }
+                                            }
                                         }
                                     }
                                 ) {
                                     Text("Guardar cambios")
                                 }
+
                             }
                         }
 
@@ -282,7 +345,7 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                         TextButton(onClick = {
                             showCerrarSesionDialog = false
 
-                            authViewModel.cerrarSesion()
+                            authViewModel.cerrarSesion(context)
 
                             navController.navigate(Ruta.Pantalla1.ruta) { popUpTo(0) } //Ruta.Pantalla1.ruta
                         }) {

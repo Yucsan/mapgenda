@@ -7,6 +7,8 @@ import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import com.yucsan.mapgendafernandochang2025.repository.UsuarioRepository
 import com.yucsan.mapgendafernandochang2025.entidad.UsuarioEntity
+import com.yucsan.mapgendafernandochang2025.mapper.toEntity
+import com.yucsan.mapgendafernandochang2025.servicio.backend.RetrofitInstance
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,4 +54,22 @@ class UsuarioViewModel(private val repository: UsuarioRepository) : ViewModel() 
             _usuario.value = null
         }
     }
+
+
+    @OptIn(UnstableApi::class)
+    fun sincronizarUsuarioConBackend(id: String) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitInstance.api.obtenerUsuarioPorId(id)
+                if (response.isSuccessful) {
+                    val usuarioActualizado = response.body()?.toEntity()
+                    usuarioActualizado?.let { guardarUsuario(it) }
+                }
+            } catch (e: Exception) {
+                Log.e("SYNC_USUARIO", "Error al sincronizar usuario", e)
+            }
+        }
+    }
+
+
 }

@@ -38,6 +38,8 @@ import androidx.compose.ui.input.pointer.motionEventSpy
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.maps.model.LatLng
+import com.yucsan.mapgendafernandochang2025.componentes.Ruta
+import com.yucsan.mapgendafernandochang2025.componentes.navegacion.BottomBarScreen
 import com.yucsan.mapgendafernandochang2025.util.categoriasPorGrupo
 import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.LugarRutaOfflineViewModel
@@ -162,7 +164,8 @@ fun PantallaFiltroOffline(
                                 text = "Selecciona una ubicación guardada:",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                                modifier = Modifier
+                                    .align(Alignment.CenterHorizontally)
                                     .padding(vertical = 5.dp)
                             )
 
@@ -230,91 +233,112 @@ fun PantallaFiltroOffline(
                     }
 
                     item {
-                        Spacer(Modifier.height(8.dp))
-
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 12.dp)
-                        ) {
-                            categoriasPorGrupo.entries.forEach { (categoria, _) ->
-                                val color = coloresPorCategoriaPadre[categoria]
-                                FilterChip(
-                                    selected = categoriasActivas.contains(categoria),
-                                    onClick = {
-                                        if (categoriasActivas.contains(categoria)) {
-                                            categoriasActivas.remove(categoria)
-                                            categoriasPorGrupo[categoria]?.forEach {
-                                                seleccionadas.remove(it)
-                                            }
-                                        } else {
-                                            categoriasActivas.add(categoria)
-                                        }
-                                    },
-                                    label = { Text(categoria) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = color ?: Color.Gray,
-                                        containerColor = Color.Transparent,
-                                        selectedLabelColor = Color.White,
-                                        labelColor = color ?: MaterialTheme.colorScheme.primary,
-                                        disabledLabelColor = color?.copy(alpha = 0.4f) ?: Color.LightGray
-                                    ),
-                                    border = BorderStroke(1.dp, color ?: Color.Gray)
-                                )
-                            }
+                        val categoriasConDatos = categoriasPorGrupo.entries.filter { (_, subcategorias) ->
+                            subcategorias.any { subcat -> (conteoPorSubcategoria[subcat] ?: 0) > 0 }
                         }
-                    }
 
-                    item {
-                        Spacer(Modifier.height(1.dp))
-                        categoriasActivasOrdenadas.forEach { categoria ->
-                            val color = coloresPorCategoriaPadre[categoria]
-                            Text(
-                                text = categoria,
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = color ?: MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 4.dp)
-                            )
+                        if (categoriasConDatos.isNotEmpty()) {
+                            Spacer(Modifier.height(8.dp))
 
                             FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(start = 12.dp)
                             ) {
-                                categoriasPorGrupo[categoria]?.forEach { subcategoria ->
-                                    if ((conteoPorSubcategoria[subcategoria] ?: 0) > 0) {
-                                        FilterChip(
-                                            selected = seleccionadas.contains(subcategoria),
-                                            onClick = {
-                                                if (seleccionadas.contains(subcategoria)) {
-                                                    seleccionadas.remove(subcategoria)
-                                                } else {
-                                                    seleccionadas.add(subcategoria)
+                                categoriasConDatos.forEach { (categoria, _) ->
+                                    val color = coloresPorCategoriaPadre[categoria]
+                                    FilterChip(
+                                        selected = categoriasActivas.contains(categoria),
+                                        onClick = {
+                                            if (categoriasActivas.contains(categoria)) {
+                                                categoriasActivas.remove(categoria)
+                                                categoriasPorGrupo[categoria]?.forEach {
+                                                    seleccionadas.remove(it)
                                                 }
-                                            },
-                                            label = {
-                                                Text(
-                                                    "$subcategoria (${conteoPorSubcategoria[subcategoria] ?: 0})",
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                            },
-                                            colors = FilterChipDefaults.filterChipColors(
-                                                selectedContainerColor = color ?: Color.Gray,
-                                                selectedLabelColor = Color.White,
-                                                containerColor = color?.copy(alpha = 0.2f)
-                                                    ?: Color.LightGray
-                                            ),
-                                            border = BorderStroke(1.dp, color ?: Color.Gray)
+                                            } else {
+                                                categoriasActivas.add(categoria)
+                                            }
+                                        },
+                                        enabled = ubicacion != null,
+                                        label = { Text(categoria) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = color ?: Color.Gray,
+                                            containerColor = Color.Transparent,
+                                            selectedLabelColor = Color.White,
+                                            labelColor = color ?: MaterialTheme.colorScheme.primary,
+                                            disabledLabelColor = color?.copy(alpha = 0.4f) ?: Color.LightGray
+                                        ),
+                                        border = BorderStroke(1.dp, color ?: Color.Gray)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+
+                    item {
+                        val categoriasConDatos = categoriasPorGrupo.entries.filter { (_, subcategorias) ->
+                            subcategorias.any { subcat -> (conteoPorSubcategoria[subcat] ?: 0) > 0 }
+                        }
+
+                        if (categoriasConDatos.isNotEmpty()) {
+                            categoriasConDatos.forEach { (categoria, subcategorias) ->
+                                val color = coloresPorCategoriaPadre[categoria]
+                                val subcategoriasConDatos = subcategorias.filter { (conteoPorSubcategoria[it] ?: 0) > 0 }
+
+                                if (subcategoriasConDatos.isNotEmpty()) {
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        Spacer(Modifier.height(8.dp))
+
+                                        Text(
+                                            text = categoria,
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = color ?: MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)
                                         )
+
+                                        FlowRow(
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(start = 12.dp)
+                                        ) {
+                                            subcategoriasConDatos.forEach { subcategoria ->
+                                                FilterChip(
+                                                    selected = seleccionadas.contains(subcategoria),
+                                                    onClick = {
+                                                        if (seleccionadas.contains(subcategoria)) {
+                                                            seleccionadas.remove(subcategoria)
+                                                        } else {
+                                                            seleccionadas.add(subcategoria)
+                                                        }
+                                                    },
+                                                    enabled = ubicacion != null,
+                                                    label = {
+                                                        Text(
+                                                            "$subcategoria (${conteoPorSubcategoria[subcategoria] ?: 0})",
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                    },
+                                                    colors = FilterChipDefaults.filterChipColors(
+                                                        selectedContainerColor = color ?: Color.Gray,
+                                                        selectedLabelColor = Color.White,
+                                                        containerColor = color?.copy(alpha = 0.2f)
+                                                            ?: Color.LightGray
+                                                    ),
+                                                    border = BorderStroke(1.dp, color ?: Color.Gray)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+
 
                     item {
                         Spacer(modifier = Modifier.height(24.dp))
@@ -364,11 +388,51 @@ fun PantallaFiltroOffline(
                                     ).show()
                                 }
                             },
+                            enabled = ubicacion != null,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("Buscar lugares")
                         }
                     }
+
+                    item {
+                        val hayLugares = categoriasPorGrupo.values.flatten()
+                            .any { subcat -> (conteoPorSubcategoria[subcat] ?: 0) > 0 }
+
+                        if (!hayLugares) {
+                            Spacer(modifier = Modifier.height(32.dp))
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "😕 No hay sitios descargados para esta ubicación.",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(bottom = 12.dp)
+                                )
+
+                                Button(
+                                    onClick = {
+                                        navController.navigate(BottomBarScreen.Descargas.route) {
+                                            // popUpTo al principio de tu grafo, para restaurar estados como haces en el bottom-nav
+                                            popUpTo(navController.graph.startDestinationId) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Text("Ir a descargas")
+                                }
+                            }
+                        }
+                    }
+
 
                     if (!permisoConcedido.value) {
                         item {
@@ -404,40 +468,27 @@ fun PantallaFiltroOffline(
 
 
 
-    // Navegación al mapa si se concede el permiso y se seleccionan categorías
-        LaunchedEffect(ubicacion, iniciarCarga) {
-            // Fallback: si no hay ubicación en el ViewModel offline, pero sí en el global
-            if (ubicacion == null && lugarViewModel.ubicacion.value != null) {
-                val (lat, lng) = lugarViewModel.ubicacion.value!!
-                Log.d("DEBUG_UBICACION", "📦 Fallback a ubicación desde LugarViewModel: $lat, $lng")
-                lugarOfflineViewModel.actualizarUbicacionManual(LatLng(lat, lng))
+    LaunchedEffect(ubicacion, iniciarCarga) {
+        if (iniciarCarga && ubicacion != null && permisoConcedido.value && !cargando) {
+            visible = false
+            snapshotFlow { visible }.first { !it }
+
+            lugarOfflineViewModel.actualizarCategorias(seleccionadas.toSet())
+            lugarOfflineViewModel.actualizarRadio(distanciaFiltro)
+
+            Log.d("DEBUG_UBICACION", "🌍 Ubicación usada para filtrar: $ubicacion")
+            Toast.makeText(context, "Usando ubicación: $ubicacion", Toast.LENGTH_SHORT).show()
+
+            navController.navigate("mapaubi") {
+                popUpTo(0)
             }
 
-            if (iniciarCarga && ubicacion != null && permisoConcedido.value && !cargando) {
-                visible = false
-                snapshotFlow { visible }.first { !it }
-                lugarOfflineViewModel.actualizarCategorias(seleccionadas.toSet())
-                lugarOfflineViewModel.actualizarRadio(distanciaFiltro)
-
-                Log.d("DEBUG_UBICACION", "🌍 Ubicación usada para filtrar: $ubicacion")
-                Toast.makeText(context, "Usando ubicación: $ubicacion", Toast.LENGTH_SHORT).show()
-
-                Log.d("DEBUG_NAV", "🌍 Ubicación actual en ViewModel: ${ubicacion}")
-                Log.d("DEBUG_NAV", "🗂️ Categorías seleccionadas: ${seleccionadas}")
-                Log.d("DEBUG_NAV", "📏 Radio: $distanciaFiltro")
-
-
-                navController.navigate("mapaubi") {
-                    popUpTo(0)
-                }
-
-                iniciarCarga = false
-            }
+            iniciarCarga = false
         }
     }
 
 
-
+}
 
 
 // Función auxiliar para manejar el permiso de ubicación
@@ -451,7 +502,7 @@ private suspend fun verificarPermisoYIniciar(
     if (ok) {
         // SOLO INICIA actualización si no hay ubicación ya establecida
         if (lugarOfflineViewModel.ubicacion.value == null) {
-            lugarOfflineViewModel.iniciarActualizacionUbicacion(context)
+            //lugarOfflineViewModel.iniciarActualizacionUbicacion(context)
         } else {
             Log.d("DEBUG_UBI", "✅ Ubicación manual ya establecida, no se sobrescribirá.")
         }

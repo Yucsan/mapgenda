@@ -23,6 +23,8 @@ fun PantallaTabsDescarga(
     val tabs = listOf("Descarga Categorias", "Descarga Simple")
     var selectedTabIndex by remember { mutableStateOf(0) }
 
+
+
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = selectedTabIndex) {
             tabs.forEachIndexed { index, title ->
