@@ -118,7 +118,4 @@ fun obtenerPorSubcategoriasSinFiltroGeografico(
     ): List<SubcategoriaConteo>
 
 
-
-
-
 }

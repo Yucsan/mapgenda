@@ -72,6 +72,10 @@ fun PantallaMapaCompose(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val todos by viewModelLugar.todosLosLugares.collectAsState()
+    LaunchedEffect(Unit) {
+        println("🔍 Total lugares locales: ${todos.size}")
+    }
 
 
     LaunchedEffect(lugares) {

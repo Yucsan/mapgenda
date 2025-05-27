@@ -27,4 +27,15 @@ object RetrofitInstance {
             .build()
             .create(UsuarioApiService::class.java)
     }
+
+    val lugarApi: LugarApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(client) // 👈 incluye interceptor con token
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(LugarApiService::class.java)
+    }
+
+
 }

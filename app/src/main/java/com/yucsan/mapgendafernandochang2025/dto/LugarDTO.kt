@@ -1,5 +1,6 @@
 package com.yucsan.mapgendafernandochang2025.dto
 
+import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
 
 
 data class LugarDTO(
@@ -12,5 +13,23 @@ data class LugarDTO(
     val calificacion: Double,
     val fotoUrl: String,
     val abiertoAhora: Boolean,
-    val duracionEstimadaMinutos: Int
+    val duracionEstimadaMinutos: Int,
+    val usuarioId: String? = null // Agregado para asociar con el usuario que lo creó o modificó
 )
+
+fun LugarDTO.toEntity(): LugarLocal {
+    return LugarLocal(
+        id = id,
+        nombre = nombre,
+        latitud = latitud,
+        longitud = longitud,
+        direccion = direccion,
+        categoriaGeneral = tipo,
+        rating = calificacion.toFloat(),
+        photoReference = fotoUrl,
+        abiertoAhora = abiertoAhora,
+        duracionEstimadaMinutos = duracionEstimadaMinutos,
+        usuarioId = usuarioId
+    )
+}
+

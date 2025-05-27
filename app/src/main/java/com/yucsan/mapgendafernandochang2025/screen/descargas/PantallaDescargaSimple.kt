@@ -85,6 +85,18 @@ fun PantallaDescargaSimple(viewModel: LugarViewModel) {
                     Text("☁️ Sincronizar con Backend envia android")
                 }
 
+                Button(
+                    onClick = {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            viewModel.descargarLugaresDesdeBackend(context)
+                        }
+                    }
+                ) {
+                    Text("⬇️ Descargar mis lugares del Backend")
+                }
+
+
+
                 if (cargando) {
                     Spacer(modifier = Modifier.height(24.dp))
                     CircularProgressIndicator()

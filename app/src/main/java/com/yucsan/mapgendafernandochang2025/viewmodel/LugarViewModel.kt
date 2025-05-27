@@ -22,16 +22,24 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.maps.model.LatLng
 import com.yucsan.aventurafernandochang2025.room.DatabaseProvider
+import com.yucsan.mapgendafernandochang2025.dto.toEntity
 
 
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
 import com.yucsan.mapgendafernandochang2025.repository.LugarRepository
+import com.yucsan.mapgendafernandochang2025.servicio.backend.RetrofitInstance
 import com.yucsan.mapgendafernandochang2025.servicio.maps.directions.places.PlacesService
+import com.yucsan.mapgendafernandochang2025.util.Auth.AuthState
 import com.yucsan.mapgendafernandochang2025.util.CategoriaMapper
 import com.yucsan.mapgendafernandochang2025.util.categoriasPersonalizadas
+import kotlinx.coroutines.withContext
 
 
-class LugarViewModel(application: Application) : AndroidViewModel(application) {
+class LugarViewModel(
+    application: Application,
+    private val authViewModel: AuthViewModel,
+    private val usuarioViewModel: UsuarioViewModel
+) : AndroidViewModel(application) {
 
     // RUTAS
     private val _lugaresSeleccionadosParaRuta = mutableStateListOf<LugarLocal>()
@@ -109,6 +117,14 @@ class LugarViewModel(application: Application) : AndroidViewModel(application) {
             _conteoPorSubcategoria.value = repository.contarLugaresPorSubcategoria()
         }
     }
+
+    fun obtenerUsuarioId(): String? {
+        val estado = authViewModel.authState.value
+        return if (estado is AuthState.Autenticado) {
+            estado.usuario.id.toString()
+        } else null
+    }
+
 
     init {
         viewModelScope.launch {
@@ -758,18 +774,61 @@ class LugarViewModel(application: Application) : AndroidViewModel(application) {
 
 
     //**************** FUNCIONALIDADES BACKEND *****************//
+
+    // subida
     fun sincronizarLugaresConApi() {
         viewModelScope.launch {
             val todos = dao.obtenerTodos().first()
+            val usuarioId = obtenerUsuarioId()
 
             Log.d("SYNC_ANDROID", "📤 Lugares a sincronizar: ${todos.size}")
             todos.forEach {
                 Log.d("SYNC_ANDROID", "📍 ${it.nombre} - ${it.latitud}, ${it.longitud}")
             }
 
-            repository.sincronizarConBackend(todos)
+            if (usuarioId != null) {
+                repository.sincronizarConBackend(todos, usuarioId)
+            }
         }
     }
+
+    // descarga
+    fun descargarLugaresDesdeBackend(context: Context) {
+        viewModelScope.launch {
+            try {
+                val usuario = usuarioViewModel.obtenerUsuario()
+                val token = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+                    .getString("jwt_token", null)
+
+                if (usuario != null && token != null) {
+                    RetrofitInstance.setTokenProvider { token }
+
+                    val lugaresDesdeApi = RetrofitInstance.lugarApi.obtenerLugaresDelUsuario(usuario.id.toString())
+
+                    // Guardar en la base de datos local
+                    val lugaresLocal = lugaresDesdeApi.map { dto -> dto.toEntity() }
+                    dao.insertarLugares(lugaresLocal)
+
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "✅ Lugares descargados correctamente", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "⚠️ Usuario no autenticado", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "❌ Error al descargar: ${e.message}", Toast.LENGTH_LONG).show()
+                    Log.d("LugarViewModel", "❌ Error al descargar lugares desde backend \"${e.message}\"")
+                }
+            }
+        }
+    }
+
+
+
+
 
 
     //FUNCIONES RUTAS ---
@@ -891,6 +950,48 @@ class LugarViewModel(application: Application) : AndroidViewModel(application) {
     fun actualizarUbicacionManual(latLng: LatLng) {
         _ubicacion.value = latLng.latitude to latLng.longitude
     }
+
+    // funcion de agrupacion para pantalla de gestion de Lugares
+
+    private val _lugaresPorZona = MutableStateFlow<Map<String, List<LugarLocal>>>(emptyMap())
+    val lugaresPorZona: StateFlow<Map<String, List<LugarLocal>>> = _lugaresPorZona
+
+    fun agruparLugaresPorZona(cantidadPorLado: Int = 1, separacionGrados: Double = 0.02) {
+        val ubicacionCentral = _ubicacion.value
+        val todos = _todosLosLugares.value
+
+        if (ubicacionCentral == null || todos.isEmpty()) {
+            Log.w("ZONAS", "⛔ Sin ubicación o sin lugares")
+            return
+        }
+
+        val zonas = mutableMapOf<String, MutableList<LugarLocal>>()
+        val centroLat = ubicacionCentral.first
+        val centroLng = ubicacionCentral.second
+
+        // Genera un mapa de zonas con coordenadas de cuadrícula
+        val zonasOrdenadas = mutableListOf<Pair<Int, Int>>()
+        for (i in -cantidadPorLado..cantidadPorLado) {
+            for (j in -cantidadPorLado..cantidadPorLado) {
+                zonasOrdenadas.add(i to j)
+            }
+        }
+
+        val indexPorZona = zonasOrdenadas.mapIndexed { index, par -> par to "Zona ${index + 1}" }.toMap()
+
+        // Agrupa los lugares en la zona más cercana
+        for (lugar in todos) {
+            val latOffset = ((lugar.latitud - centroLat) / separacionGrados).toInt().coerceIn(-cantidadPorLado, cantidadPorLado)
+            val lngOffset = ((lugar.longitud - centroLng) / separacionGrados).toInt().coerceIn(-cantidadPorLado, cantidadPorLado)
+            val clave = indexPorZona[latOffset to lngOffset] ?: continue
+
+            zonas.getOrPut(clave) { mutableListOf() }.add(lugar)
+        }
+
+        _lugaresPorZona.value = zonas
+        Log.d("ZONAS", "✅ Zonas agrupadas: ${zonas.size}")
+    }
+
 
 
 

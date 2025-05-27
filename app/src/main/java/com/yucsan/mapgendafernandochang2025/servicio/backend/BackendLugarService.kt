@@ -1,11 +1,13 @@
 package com.yucsan.mapgendafernandochang2025.servicio.backend
 
+import android.content.Context
 import android.util.Log
 import com.yucsan.mapgendafernandochang2025.dto.LugarDTO
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
 
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.UUID
 
 class BackendLugarService {
     private val retrofit = Retrofit.Builder()
@@ -88,18 +90,14 @@ class BackendLugarService {
 
 
 
-    suspend fun subirLugaresEnLote(lugares: List<LugarLocal>) {
+    suspend fun subirLugaresEnLote(lugares: List<LugarLocal>,  usuarioId: String) {
         try {
             Log.d("SYNC_BACKEND", "⏫ Subiendo ${lugares.size} lugares en lote...")
 
-            val retrofit = Retrofit.Builder()
-                .baseUrl("http://192.168.0.13:8080/aventura/") // 👈 Asegúrate de que sea correcta
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
+            // ✅ Usa RetrofitInstance con AuthInterceptor (ya configurado con token)
+            val api = RetrofitInstance.lugarApi
 
-            val api = retrofit.create(LugarApiService::class.java)
-
-            // ✨ Aquí convertimos LugarLocal → LugarDTO
+            // ✨ Convertir LugarLocal → LugarDTO
             val dtos = lugares.map { lugar ->
                 LugarDTO(
                     id = lugar.id,
@@ -111,22 +109,28 @@ class BackendLugarService {
                     calificacion = lugar.rating?.toDouble() ?: 0.0,
                     fotoUrl = lugar.photoReference ?: "",
                     abiertoAhora = lugar.abiertoAhora ?: false,
-                    duracionEstimadaMinutos = 0 // o lo que quieras usar
+                    duracionEstimadaMinutos = 0,
+                    usuarioId = usuarioId
                 )
             }
 
+            // 📡 Enviar al backend
             val response = api.subirLugares(dtos)
 
             if (response.isSuccessful) {
                 Log.d("SYNC_BACKEND", "✅ Lote subido con éxito")
             } else {
-                Log.e("SYNC_BACKEND", "❌ Fallo subiendo lote: ${response.code()} - ${response.errorBody()?.string()}")
+                Log.e(
+                    "SYNC_BACKEND",
+                    "❌ Fallo subiendo lote: ${response.code()} - ${response.errorBody()?.string()}"
+                )
             }
 
         } catch (e: Exception) {
             Log.e("SYNC_BACKEND", "❌ Error al subir lote", e)
         }
     }
+
 
 
 

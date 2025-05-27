@@ -1,5 +1,6 @@
 package com.yucsan.mapgendafernandochang2025
 
+import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -49,7 +50,10 @@ class MainActivity : ComponentActivity() {
             val lugarOfflineViewModel: LugarRutaOfflineViewModel = viewModel()
             val rutaRepository = RutaRepository(database.rutaDao())
             val rutaViewModel: RutaViewModel = viewModel(factory = RutaViewModelFactory(rutaRepository))
-            val lugarViewModel: LugarViewModel = viewModel()
+
+
+
+
             val mapViewModel: MapViewModel = viewModel()
             val navegacionViewModel: NavegacionViewModel = viewModel()
             val themeViewModel: ThemeViewModel by viewModels()
@@ -77,6 +81,13 @@ class MainActivity : ComponentActivity() {
             }
 
             authViewModel.initAuth(context)
+
+
+            val application = context.applicationContext as Application
+
+            val lugarViewModel: LugarViewModel = viewModel(
+                factory = LugarViewModelFactory(application, authViewModel, usuarioViewModel)
+            )
 
 
 

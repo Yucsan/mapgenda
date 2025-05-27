@@ -12,7 +12,7 @@ data class LugarLocal(
     val latitud: Double,
     val longitud: Double,
     val categoriaGeneral: String? = null,
-    val subcategoria: String,
+    val subcategoria: String = "",
     var tipos: List<String>? = null,
     val rating: Float? = null,
     val totalReviews: Int? = null,
@@ -23,7 +23,9 @@ data class LugarLocal(
     val businessStatus: String? = null,
     val userRatingsTotal: Int? = null,
     val fuente: String = "Google",
-    val ultimaActualizacion: Long = System.currentTimeMillis()
+    val duracionEstimadaMinutos: Int = 0,
+    val ultimaActualizacion: Long = System.currentTimeMillis(),
+    val usuarioId: String? = null // ✅ este faltaba también
 )
 
 

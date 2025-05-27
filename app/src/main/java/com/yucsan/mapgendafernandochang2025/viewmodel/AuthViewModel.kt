@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yucsan.mapgendafernandochang2025.entidad.UsuarioEntity
+import com.yucsan.mapgendafernandochang2025.servicio.backend.RetrofitInstance
 import com.yucsan.mapgendafernandochang2025.util.Auth.AuthState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,8 +36,10 @@ class AuthViewModel(
         viewModelScope.launch {
             usuarioViewModel.guardarUsuario(usuario)
             guardarToken(context, token)
-            _authState.value = AuthState.Autenticado(usuario, token)
 
+            RetrofitInstance.setTokenProvider { obtenerToken(context) }
+
+            _authState.value = AuthState.Autenticado(usuario, token)
             usuarioViewModel.sincronizarUsuarioConBackend(usuario.id) // Aseguramos que el usuario esté sincronizado
         }
     }

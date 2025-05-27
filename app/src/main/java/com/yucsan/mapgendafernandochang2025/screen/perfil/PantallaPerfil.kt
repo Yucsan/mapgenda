@@ -67,8 +67,6 @@ fun PantallaPerfil(viewModel: LugarViewModel,
 
     }
 
-
-
     val coroutineScope = rememberCoroutineScope()
 
     val pickImageLauncher = rememberLauncherForActivityResult(
@@ -89,8 +87,6 @@ fun PantallaPerfil(viewModel: LugarViewModel,
     var nuevaCiudad by remember { mutableStateOf(TextFieldValue("")) }
     var showCerrarSesionDialog by remember { mutableStateOf(false) }
     var isUploading by remember { mutableStateOf(false) }
-
-
 
     ModalNavigationDrawer(
         drawerState = drawerState,

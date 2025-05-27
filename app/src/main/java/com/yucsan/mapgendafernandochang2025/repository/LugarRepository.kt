@@ -163,7 +163,7 @@ class LugarRepository(private val lugarDao: LugarDao) {
 
     //     ******************    CONEXION BACKEND   ******************
 
-    suspend fun sincronizarConBackend(lugares: List<LugarLocal>) {
+    suspend fun sincronizarConBackend(lugares: List<LugarLocal>, usuarioId: String) {
 
         Log.d("SYNC_REPO", "📤 Enviando ${lugares.size} lugares al backend")
         lugares.forEach {
@@ -179,7 +179,7 @@ class LugarRepository(private val lugarDao: LugarDao) {
         }
 
         val backend = BackendLugarService()
-        backend.subirLugaresEnLote(lugaresValidados)
+        backend.subirLugaresEnLote(lugaresValidados, usuarioId)
     }
 
     suspend fun contarLugaresPorSubcategoriaFiltrando(
@@ -191,10 +191,6 @@ class LugarRepository(private val lugarDao: LugarDao) {
             .contarSubcategoriasCercanas(latitud, longitud, radio)
             .associate { it.subcategoria to it.cantidad }
     }
-
-
-
-
 
 
 
