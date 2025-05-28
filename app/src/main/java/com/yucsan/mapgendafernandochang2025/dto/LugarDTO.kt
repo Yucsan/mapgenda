@@ -24,12 +24,21 @@ fun LugarDTO.toEntity(): LugarLocal {
         latitud = latitud,
         longitud = longitud,
         direccion = direccion,
-        categoriaGeneral = tipo,
+        subcategoria = tipo,     // ✅ AQUÍ ESTÁ LA CLAVE
+        tipos = null,
         rating = calificacion.toFloat(),
-        photoReference = fotoUrl,
+        totalReviews = null,
+        precio = null,
         abiertoAhora = abiertoAhora,
+        estado = null,
+        photoReference = fotoUrl,
+        businessStatus = null,
+        userRatingsTotal = null,
+        fuente = "API", // o "Backend" si quieres diferenciar
         duracionEstimadaMinutos = duracionEstimadaMinutos,
+        ultimaActualizacion = System.currentTimeMillis(),
         usuarioId = usuarioId
     )
 }
+
 

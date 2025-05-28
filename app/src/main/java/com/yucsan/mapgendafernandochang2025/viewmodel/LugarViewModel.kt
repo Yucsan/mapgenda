@@ -840,11 +840,6 @@ class LugarViewModel(
         }
     }
 
-
-
-
-
-
     //FUNCIONES RUTAS ---
 
     // Agrega un lugar a la lista de selección

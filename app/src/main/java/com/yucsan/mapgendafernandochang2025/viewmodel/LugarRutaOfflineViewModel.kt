@@ -286,7 +286,7 @@ class LugarRutaOfflineViewModel(application: Application) : AndroidViewModel(app
             )
         }
     }
-    
+
     fun aplicarFiltroManualConParametros(
         subcategorias: List<String>,
         centro: LatLng,
@@ -316,11 +316,6 @@ class LugarRutaOfflineViewModel(application: Application) : AndroidViewModel(app
             }
         }
     }
-
-
-
-
-
 
 
     //para pruebas
