@@ -114,6 +114,8 @@ fun PantallaFiltroOffline(
     val exitAnimation = remember {
         slideOutVertically(targetOffsetY = { fullHeight -> fullHeight }) + fadeOut()
     }
+    val categoriasExpandibles = remember { mutableStateMapOf<String, Boolean>() }
+
 
     AnimatedVisibility(visible = visible, enter = enterAnimation, exit = exitAnimation) {
 
@@ -250,16 +252,10 @@ fun PantallaFiltroOffline(
                                 categoriasConDatos.forEach { (categoria, _) ->
                                     val color = coloresPorCategoriaPadre[categoria]
                                     FilterChip(
-                                        selected = categoriasActivas.contains(categoria),
+                                        selected = categoriasExpandibles[categoria] == true,
                                         onClick = {
-                                            if (categoriasActivas.contains(categoria)) {
-                                                categoriasActivas.remove(categoria)
-                                                categoriasPorGrupo[categoria]?.forEach {
-                                                    seleccionadas.remove(it)
-                                                }
-                                            } else {
-                                                categoriasActivas.add(categoria)
-                                            }
+                                            val estabaExpandida = categoriasExpandibles[categoria] ?: false
+                                            categoriasExpandibles[categoria] = !estabaExpandida
                                         },
                                         enabled = ubicacion != null,
                                         label = { Text(categoria) },
@@ -288,7 +284,8 @@ fun PantallaFiltroOffline(
                                 val color = coloresPorCategoriaPadre[categoria]
                                 val subcategoriasConDatos = subcategorias.filter { (conteoPorSubcategoria[it] ?: 0) > 0 }
 
-                                if (subcategoriasConDatos.isNotEmpty()) {
+                                val expandida = categoriasExpandibles[categoria] == true
+                                if (expandida && subcategoriasConDatos.isNotEmpty()) {
                                     Column(modifier = Modifier.fillMaxWidth()) {
                                         Spacer(Modifier.height(8.dp))
 
@@ -326,8 +323,7 @@ fun PantallaFiltroOffline(
                                                     colors = FilterChipDefaults.filterChipColors(
                                                         selectedContainerColor = color ?: Color.Gray,
                                                         selectedLabelColor = Color.White,
-                                                        containerColor = color?.copy(alpha = 0.2f)
-                                                            ?: Color.LightGray
+                                                        containerColor = color?.copy(alpha = 0.2f) ?: Color.LightGray
                                                     ),
                                                     border = BorderStroke(1.dp, color ?: Color.Gray)
                                                 )
@@ -335,6 +331,7 @@ fun PantallaFiltroOffline(
                                         }
                                     }
                                 }
+
                             }
                         }
                     }

@@ -72,6 +72,27 @@ class LugarRutaOfflineViewModel(application: Application) : AndroidViewModel(app
     private val _conteoPorSubcategoriaFiltrado = MutableStateFlow<Map<String, Int>>(emptyMap())
     val conteoPorSubcategoriaFiltrado: StateFlow<Map<String, Int>> = _conteoPorSubcategoriaFiltrado
 
+    // Subcategorías seleccionadas temporalmente (chips marcados)
+    private val _filtrosTemporales = MutableStateFlow<List<String>>(emptyList())
+    val filtrosTemporales: StateFlow<List<String>> = _filtrosTemporales.asStateFlow()
+
+    // Categorías padre desplegadas temporalmente
+    private val _categoriasExpandibles = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val categoriasExpandibles: StateFlow<Map<String, Boolean>> = _categoriasExpandibles.asStateFlow()
+
+
+
+    // menu Pantalla offline estados chips
+    fun establecerFiltrosTemporales(subcategorias: List<String>) {
+        Log.d("DBG", ">> setTemporales: $subcategorias")
+        _filtrosTemporales.value = subcategorias
+    }
+
+    fun establecerCategoriasExpandibles(nuevas: Map<String, Boolean>) {
+        _categoriasExpandibles.value = nuevas
+    }
+
+
 
     fun dispararFiltro() {
         _debeAplicarFiltro.value = true
