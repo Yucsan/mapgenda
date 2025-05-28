@@ -193,6 +193,14 @@ fun PantallaMapaCompose(
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModelLugar.observarTodosLosLugares()
+        viewModelLugar.iniciarActualizacionUbicacion(context) // asegúrate de pasar context
+        delay(1000) // opcional, espera a que los datos estén listos
+        viewModelLugar.agruparLugaresPorZonaGeografica2(radioKm = 8.0)
+    }
+
+
 
     Box(Modifier.fillMaxSize()) {
         SnackbarHost(

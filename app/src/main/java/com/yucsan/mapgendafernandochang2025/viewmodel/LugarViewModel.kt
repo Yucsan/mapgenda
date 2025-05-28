@@ -33,13 +33,25 @@ import com.yucsan.mapgendafernandochang2025.util.Auth.AuthState
 import com.yucsan.mapgendafernandochang2025.util.CategoriaMapper
 import com.yucsan.mapgendafernandochang2025.util.categoriasPersonalizadas
 import kotlinx.coroutines.withContext
+import com.yucsan.mapgendafernandochang2025.util.haversineDistance
+
 
 
 class LugarViewModel(
     application: Application,
     private val authViewModel: AuthViewModel,
-    private val usuarioViewModel: UsuarioViewModel
+    private val usuarioViewModel: UsuarioViewModel,
+    private val ubicacionViewModel: UbicacionViewModel
 ) : AndroidViewModel(application) {
+
+
+//lugares por ZONA
+    private val _lugaresPorZona = MutableStateFlow<Map<String, List<LugarLocal>>>(emptyMap())
+    val lugaresPorZona: StateFlow<Map<String, List<LugarLocal>>> = _lugaresPorZona
+
+    private val _centrosPorZona = MutableStateFlow<Map<String, Pair<Double, Double>>>(emptyMap())
+    val centrosPorZona: StateFlow<Map<String, Pair<Double, Double>>> = _centrosPorZona
+
 
     // RUTAS
     private val _lugaresSeleccionadosParaRuta = mutableStateListOf<LugarLocal>()
@@ -181,6 +193,8 @@ class LugarViewModel(
 
 
     }
+
+
 
     private fun actualizarFiltradoInterno() {
         val filtros = _filtrosActivos.value
@@ -951,17 +965,13 @@ class LugarViewModel(
         _ubicacion.value = latLng.latitude to latLng.longitude
     }
 
-    // funcion de agrupacion para pantalla de gestion de Lugares
-
-    private val _lugaresPorZona = MutableStateFlow<Map<String, List<LugarLocal>>>(emptyMap())
-    val lugaresPorZona: StateFlow<Map<String, List<LugarLocal>>> = _lugaresPorZona
 
     fun agruparLugaresPorZona(cantidadPorLado: Int = 1, separacionGrados: Double = 0.02) {
         val ubicacionCentral = _ubicacion.value
         val todos = _todosLosLugares.value
 
         if (ubicacionCentral == null || todos.isEmpty()) {
-            Log.w("ZONAS", "⛔ Sin ubicación o sin lugares")
+            Log.w("ZONAS", "⛔ Sin ubicación o sin lugares. Ubicación: $ubicacionCentral, Lugares: ${todos.size}")
             return
         }
 
@@ -979,21 +989,130 @@ class LugarViewModel(
 
         val indexPorZona = zonasOrdenadas.mapIndexed { index, par -> par to "Zona ${index + 1}" }.toMap()
 
+        Log.d("ZONAS", "📌 Index por zona:")
+        indexPorZona.forEach { (offset, nombre) ->
+            Log.d("ZONAS", "🔢 $nombre ← Offset $offset")
+        }
+
+        // Calcula centros
+        val centros = indexPorZona.entries.associate { (offset, zonaNombre) ->
+            val (latOffset, lngOffset) = offset
+            val lat = centroLat + latOffset * separacionGrados
+            val lng = centroLng + lngOffset * separacionGrados
+            zonaNombre to (lat to lng)
+        }
+
+        _centrosPorZona.value = centros
+
+        Log.d("ZONAS", "📍 Centros por zona:")
+        centros.forEach { (zona, centro) ->
+            Log.d("ZONAS", "🌐 $zona en ${centro.first}, ${centro.second}")
+        }
+
         // Agrupa los lugares en la zona más cercana
         for (lugar in todos) {
             val latOffset = ((lugar.latitud - centroLat) / separacionGrados).toInt().coerceIn(-cantidadPorLado, cantidadPorLado)
             val lngOffset = ((lugar.longitud - centroLng) / separacionGrados).toInt().coerceIn(-cantidadPorLado, cantidadPorLado)
-            val clave = indexPorZona[latOffset to lngOffset] ?: continue
+            val clave = indexPorZona[latOffset to lngOffset]
+
+            if (clave == null) {
+                Log.w("ZONAS", "⚠️ Lugar fuera de zona válida: ${lugar.nombre}")
+                continue
+            }
 
             zonas.getOrPut(clave) { mutableListOf() }.add(lugar)
+            Log.d("ZONAS", "✅ ${lugar.nombre} → $clave")
         }
 
         _lugaresPorZona.value = zonas
-        Log.d("ZONAS", "✅ Zonas agrupadas: ${zonas.size}")
+        Log.d("ZONAS", "🎯 Total zonas con lugares: ${zonas.size}")
+    }
+
+    fun agruparLugaresPorZonaGeografica2(radioKm: Double = 8.0) {
+        val lugaresPendientes = _todosLosLugares.value.toMutableList()
+        val zonasAgrupadas = mutableMapOf<String, MutableList<LugarLocal>>()
+        val centrosZona = mutableMapOf<String, Pair<Double, Double>>()
+
+        var contadorZona = 1
+
+        while (lugaresPendientes.isNotEmpty()) {
+            val lugarBase = lugaresPendientes.removeAt(0)
+            val centroLat = lugarBase.latitud
+            val centroLon = lugarBase.longitud
+
+            val nombreZona = "Zona $contadorZona"
+            val lugaresEnZona = mutableListOf<LugarLocal>()
+            lugaresEnZona.add(lugarBase)
+
+            val iterator = lugaresPendientes.iterator()
+            while (iterator.hasNext()) {
+                val lugar = iterator.next()
+                val distancia = haversineDistance(
+                    centroLat, centroLon,
+                    lugar.latitud, lugar.longitud
+                )
+
+                if (distancia <= radioKm) {
+                    lugaresEnZona.add(lugar)
+                    iterator.remove()
+                }
+            }
+
+            zonasAgrupadas[nombreZona] = lugaresEnZona
+            centrosZona[nombreZona] = centroLat to centroLon
+            Log.d("ZONAS", "🔢 $nombreZona → Centro: ($centroLat, $centroLon) con ${lugaresEnZona.size} lugares")
+
+            contadorZona++
+        }
+
+        _lugaresPorZona.value = zonasAgrupadas
+        _centrosPorZona.value = centrosZona
     }
 
 
 
+    fun agruparLugaresPorZonaGeografica(radioKm: Double = 8.0) {
+        val lugaresPendientes = _todosLosLugares.value.toMutableList()
+        val zonasAgrupadas = mutableMapOf<String, MutableList<LugarLocal>>()
+        val centrosZona = mutableMapOf<String, Pair<Double, Double>>()
+
+        var contadorZona = 1
+
+        // Mientras haya lugares sin agrupar
+        while (lugaresPendientes.isNotEmpty()) {
+            // Tomamos un lugar como centro de la zona
+            val lugarCentro = lugaresPendientes.removeAt(0)
+            val centroLat = lugarCentro.latitud
+            val centroLon = lugarCentro.longitud
+
+            val nombreZona = "Zona $contadorZona"
+            val lugaresEnZona = mutableListOf<LugarLocal>()
+            lugaresEnZona.add(lugarCentro)
+
+            val iterator = lugaresPendientes.iterator()
+            while (iterator.hasNext()) {
+                val lugar = iterator.next()
+                val distancia = haversineDistance(
+                    centroLat, centroLon,
+                    lugar.latitud, lugar.longitud
+                )
+
+                if (distancia <= radioKm) {
+                    lugaresEnZona.add(lugar)
+                    iterator.remove() // Ya lo agrupamos, lo quitamos de la lista pendiente
+                }
+            }
+
+            zonasAgrupadas[nombreZona] = lugaresEnZona
+            centrosZona[nombreZona] = centroLat to centroLon
+
+            contadorZona++
+        }
+
+        // Guardamos los resultados en los StateFlow del ViewModel
+        _lugaresPorZona.value = zonasAgrupadas
+        _centrosPorZona.value = centrosZona
+    }
 
 
 

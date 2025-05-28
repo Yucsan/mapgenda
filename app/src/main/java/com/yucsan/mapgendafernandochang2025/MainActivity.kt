@@ -1,5 +1,6 @@
 package com.yucsan.mapgendafernandochang2025
 
+import UbicacionViewModelFactory
 import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -22,7 +23,7 @@ import com.yucsan.mapgendafernandochang2025.servicio.backend.RetrofitInstance
 import com.yucsan.mapgendafernandochang2025.viewmodel.RutaViewModel
 
 import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
-import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModelFactory
+
 
 import com.yucsan.mapgendafernandochang2025.ui.theme.MapGendaFernandoChang2025Theme
 import com.yucsan.mapgendafernandochang2025.util.Auth.AuthState
@@ -59,9 +60,12 @@ class MainActivity : ComponentActivity() {
             val themeViewModel: ThemeViewModel by viewModels()
             val isDarkMode by themeViewModel.isDarkMode.collectAsStateWithLifecycle()
 
+
+
             val ubicacionRepository = UbicacionRepository(database.ubicacionDao())
+
             val ubicacionViewModel: UbicacionViewModel = viewModel(
-                factory = UbicacionViewModelFactory(ubicacionRepository)
+                factory = UbicacionViewModelFactory(application, ubicacionRepository)
             )
 
             val usuarioRepository = UsuarioRepository(database.UsuarioDao())
@@ -86,7 +90,7 @@ class MainActivity : ComponentActivity() {
             val application = context.applicationContext as Application
 
             val lugarViewModel: LugarViewModel = viewModel(
-                factory = LugarViewModelFactory(application, authViewModel, usuarioViewModel)
+                factory = LugarViewModelFactory(application, authViewModel, usuarioViewModel, ubicacionViewModel)
             )
 
 

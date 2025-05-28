@@ -17,10 +17,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
 
 @Composable
 fun MenuRutaOffline(
-    navController: NavController
+    navController: NavController,
+    lugarViewModel: LugarViewModel
 ) {
     val buttonColor = Color(0xFFF5881F)
     val buttonModifier = Modifier
@@ -76,5 +78,18 @@ fun MenuRutaOffline(
         ) {
             Text(text = "Gestion de Rutas", color = Color.White)
         }
+
+        Button(
+            onClick = {
+                lugarViewModel.agruparLugaresPorZona() // agrupa antes de navegar
+                navController.navigate("explora")
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Text("🗺️ Ver Lugares por Zonas")
+        }
+
     }
 }

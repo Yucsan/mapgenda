@@ -14,6 +14,8 @@ sealed class Ruta(val ruta:String) {
 
     object PantallaPerfil:Ruta("perfil")
 
+    object PantallaZonas:Ruta("lugares")
+
     //Mapa OffLine
 
 

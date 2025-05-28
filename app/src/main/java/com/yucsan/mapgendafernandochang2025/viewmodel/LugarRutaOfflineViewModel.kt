@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.model.LatLng
 import com.yucsan.aventurafernandochang2025.room.DatabaseProvider
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
+import kotlinx.coroutines.delay
 
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
@@ -229,8 +230,10 @@ class LugarRutaOfflineViewModel(application: Application) : AndroidViewModel(app
     }
 
     fun actualizarUbicacionManual(latLng: LatLng) {
+        _ubicacion.value = null
         _ubicacion.value = latLng.latitude to latLng.longitude
     }
+
 
     fun aplicarFiltroSubcategoriasCercanas() {
         val subcategorias = _filtrosActivos.value
@@ -258,8 +261,32 @@ class LugarRutaOfflineViewModel(application: Application) : AndroidViewModel(app
         }
     }
 
+    fun seleccionarUbicacionYAplicarFiltros(nuevaUbicacion: LatLng) {
+        viewModelScope.launch {
+            // 1️⃣ Actualizar ubicación
+            _ubicacion.value = nuevaUbicacion.latitude to nuevaUbicacion.longitude
 
+            // 2️⃣ Esperar a que el conteoPorSubcategoriaFiltrado se actualice
+            delay(300) // suficiente para que Room y Flow actualicen (ajusta si es necesario)
 
+            val conteo = _conteoPorSubcategoriaFiltrado.value
+            val subcatsDisponibles = conteo
+                .filter { it.key.isNotBlank() && it.value > 0 }
+                .keys.toList()
+
+            // 3️⃣ Actualizar filtros activos
+            _filtrosActivos.value = subcatsDisponibles
+            _categoriasSeleccionadas.value = subcatsDisponibles
+
+            // 4️⃣ Aplicar filtro manual con ubicación y subcategorías
+            aplicarFiltroManualConParametros(
+                subcategorias = subcatsDisponibles,
+                centro = nuevaUbicacion,
+                radio = _radio.value
+            )
+        }
+    }
+    
     fun aplicarFiltroManualConParametros(
         subcategorias: List<String>,
         centro: LatLng,
