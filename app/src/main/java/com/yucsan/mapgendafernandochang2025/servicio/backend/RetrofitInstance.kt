@@ -7,7 +7,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitInstance {
 
-    private const val BASE_URL = "http://192.168.0.11:8080/aventura/" // 👈 reemplaza con tu URL real
+    //private const val BASE_URL = "http://192.168.0.11:8080/aventura/" // LOCAL
+    private const val BASE_URL = "https://backend-mapgenda.onrender.com/" // RENDER
 
     private var tokenProvider: () -> String? = { null } // inyectado desde fuera
 

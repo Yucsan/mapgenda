@@ -331,7 +331,6 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                 )
             }
 
-
             if (showCerrarSesionDialog) {
                 AlertDialog(
                     onDismissRequest = { showCerrarSesionDialog = false },
@@ -355,8 +354,6 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                     }
                 )
             }
-
-
 
         }
     }

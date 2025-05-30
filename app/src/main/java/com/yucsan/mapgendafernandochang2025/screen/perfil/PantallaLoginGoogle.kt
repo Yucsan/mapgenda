@@ -69,8 +69,11 @@ fun PantallaLoginGoogle(
             Log.d("ID_TOKEN", "👉 Token de Google obtenido: $idToken")
 
 // .baseUrl("https://backend-mapgenda.onrender.com/aventura/")  ********************************************************************************** direccion api en RENDER
+
+            // .baseUrl("http://192.168.0.11:8080/aventura/")
+
             val client = Retrofit.Builder()
-                .baseUrl("http://192.168.0.11:8080/aventura/")
+                .baseUrl("https://backend-mapgenda.onrender.com/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
 
