@@ -55,14 +55,14 @@ fun PantallaExplorarTabsCompose(
 
         // Contenido de cada tab
         when (tabSeleccionado) {
-            0 -> PantallaZonasCompose(
+            0 -> PantallaUbicacionesListadoCompose(
+                lugarRutaOfflineViewModel = lugarRutaOfflineViewModel,
+                ubicacionViewModel = ubicacionViewModel
+            )
+            1 -> PantallaZonasCompose(
                 lugarViewModel = lugarViewModel,
                 ubicacionViewModel = ubicacionViewModel,
                 navController = navController
-            )
-            1 -> PantallaUbicacionesListadoCompose(
-                lugarRutaOfflineViewModel = lugarRutaOfflineViewModel,
-                ubicacionViewModel = ubicacionViewModel
             )
         }
     }

@@ -65,6 +65,7 @@ fun PantallaFiltroOffline(
     val scope = rememberCoroutineScope()
 
     val conteoPorSubcategoria by lugarOfflineViewModel.conteoPorSubcategoriaFiltrado.collectAsState()
+    //val conteoPorSubcategoria by lugarOfflineViewModel.conteoPorSubcategoria.collectAsState()
 
     var visible by remember { mutableStateOf(false) }
     val categoriasActivas = remember { mutableStateListOf<String>() }
@@ -76,10 +77,10 @@ fun PantallaFiltroOffline(
 
     var expandirMenu by remember { mutableStateOf(false) }
 
-
+/*
     LaunchedEffect(Unit) {
         lugarOfflineViewModel.probarFiltroManual()
-    }
+    }*/
 
     LaunchedEffect(seleccionadasViewModel) {
         seleccionadas.clear()
@@ -347,6 +348,7 @@ fun PantallaFiltroOffline(
                                         val ubicacionManual = lugarOfflineViewModel.ubicacion.value
                                         if (ubicacionManual != null) {
                                             val latLng = LatLng(ubicacionManual.first, ubicacionManual.second)
+                                            Log.d("DEBUG_UBICACION", "🌍 Aplicando filtro con ubicación: $latLng")
                                             lugarOfflineViewModel.actualizarUbicacionManual(latLng)
                                             lugarOfflineViewModel.actualizarRadio(distanciaFiltro)
                                             lugarOfflineViewModel.actualizarFiltrosActivos(seleccionadas.toSet())

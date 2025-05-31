@@ -21,10 +21,7 @@ import com.yucsan.mapgendafernandochang2025.repository.RutaRepository
 import com.yucsan.mapgendafernandochang2025.repository.UbicacionRepository
 import com.yucsan.mapgendafernandochang2025.servicio.backend.RetrofitInstance
 import com.yucsan.mapgendafernandochang2025.viewmodel.RutaViewModel
-
 import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
-
-
 import com.yucsan.mapgendafernandochang2025.ui.theme.MapGendaFernandoChang2025Theme
 import com.yucsan.mapgendafernandochang2025.util.Auth.AuthState
 import com.yucsan.mapgendafernandochang2025.util.state.NetworkMonitor
@@ -52,15 +49,10 @@ class MainActivity : ComponentActivity() {
             val rutaRepository = RutaRepository(database.rutaDao())
             val rutaViewModel: RutaViewModel = viewModel(factory = RutaViewModelFactory(rutaRepository))
 
-
-
-
             val mapViewModel: MapViewModel = viewModel()
             val navegacionViewModel: NavegacionViewModel = viewModel()
             val themeViewModel: ThemeViewModel by viewModels()
             val isDarkMode by themeViewModel.isDarkMode.collectAsStateWithLifecycle()
-
-
 
             val ubicacionRepository = UbicacionRepository(database.ubicacionDao())
 
@@ -86,14 +78,11 @@ class MainActivity : ComponentActivity() {
 
             authViewModel.initAuth(context)
 
-
             val application = context.applicationContext as Application
 
             val lugarViewModel: LugarViewModel = viewModel(
                 factory = LugarViewModelFactory(application, authViewModel, usuarioViewModel, ubicacionViewModel)
             )
-
-
 
             MapGendaFernandoChang2025Theme(darkTheme = isDarkMode) {
                 MainScreen(

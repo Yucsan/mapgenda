@@ -20,7 +20,7 @@ fun PantallaTabsDescarga(
     navController: NavController,
     themeViewModel: ThemeViewModel
 ) {
-    val tabs = listOf("Descarga Categorias", "Descarga Simple")
+    val tabs = listOf("Descarga Google", "Mi Nube")
     var selectedTabIndex by remember { mutableStateOf(0) }
 
 

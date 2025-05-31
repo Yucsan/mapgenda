@@ -41,6 +41,7 @@ import com.yucsan.mapgendafernandochang2025.viewmodel.AuthViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.UsuarioViewModel
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -246,10 +247,22 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                                     Text("Guardar cambios")
                                 }
 
+
+
                             }
                         }
 
                         item {
+
+
+                            Button(onClick = {
+                                usuario?.id?.let {
+                                    usuarioViewModel.refrescarUsuarioDesdeApi(UUID.fromString(it))
+                                }
+                            }) {
+                                Text("🔄 Actualizar foto desde API")
+                            }
+
                             Spacer(modifier = Modifier.height(24.dp))
                             Text("Nombre: ${usuario?.nombre}")
                             Text("Email: ${usuario?.email}")

@@ -10,8 +10,10 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.UUID
 
 class BackendLugarService {
+
+
     private val retrofit = Retrofit.Builder()
-        .baseUrl("http://192.168.0.13:8080/aventura/") // ← Cambiar por tu IP local o ngrok
+        .baseUrl("https://backend-mapgenda.onrender.com/") // ← Cambiar por tu IP local o ngrok
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
@@ -21,7 +23,7 @@ class BackendLugarService {
 
     suspend fun subirLugar(lugar: LugarLocal) {
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://192.168.0.13:8080/aventura/")
+            .baseUrl("https://backend-mapgenda.onrender.com/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 

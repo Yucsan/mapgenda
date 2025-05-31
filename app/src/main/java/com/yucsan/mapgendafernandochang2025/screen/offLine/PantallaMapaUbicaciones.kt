@@ -26,6 +26,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
+import com.yucsan.mapgendafernandochang2025.componentes.Ruta
 import com.yucsan.mapgendafernandochang2025.componentes.cajasTexto.InputDireccionBox
 import com.yucsan.mapgendafernandochang2025.entidad.UbicacionLocal
 import com.yucsan.mapgendafernandochang2025.screens.rutasoffline.componentes.EditarUbicacionDialog
@@ -178,8 +179,8 @@ fun PantallaMapaUbicacion(
                         Log.d("DEBUG_UI", "🛠  Se emitió nueva ubicación: $nuevaLatLng")
 
                         if (desdeDescarga) {
-                            navController.navigate("pantallaTabsDescarga") {
-                                popUpTo("pantallaTabsDescarga") { inclusive = true }
+                            navController.navigate(Ruta.PantallaDescargas.ruta) {
+                                popUpTo(Ruta.PantallaDescargas.ruta) { inclusive = true }
                             }
                         } else {
                             navController.popBackStack()

@@ -58,7 +58,7 @@ class LugarRutaOfflineViewModel(application: Application) : AndroidViewModel(app
     private val _categoriasSeleccionadas = MutableStateFlow<List<String>>(emptyList())
     val categoriasSeleccionadas: StateFlow<List<String>> = _categoriasSeleccionadas.asStateFlow()
 
-    private val _radio = MutableStateFlow(2000f)
+    private val _radio = MutableStateFlow(8000f)
     val distanciaSeleccionada: StateFlow<Float> get() = _radio.asStateFlow()
 
     private val _todosLosLugares = MutableStateFlow<List<LugarLocal>>(emptyList())
@@ -340,6 +340,7 @@ class LugarRutaOfflineViewModel(application: Application) : AndroidViewModel(app
 
 
     //para pruebas
+    /*
     fun probarFiltroManual() {
         viewModelScope.launch {
             repository.obtenerPorSubcategoriasCercanosHaversine(
@@ -354,7 +355,7 @@ class LugarRutaOfflineViewModel(application: Application) : AndroidViewModel(app
                 }
             }
         }
-    }
+    }*/
 
 
     fun probarFiltroManual2() {

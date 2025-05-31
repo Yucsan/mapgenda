@@ -13,6 +13,9 @@ import com.yucsan.mapgendafernandochang2025.servicio.backend.RetrofitInstance
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
+import com.yucsan.mapgendafernandochang2025.mapper.toEntity
+
 
 class UsuarioViewModel(private val repository: UsuarioRepository) : ViewModel() {
 
@@ -26,6 +29,30 @@ class UsuarioViewModel(private val repository: UsuarioRepository) : ViewModel() 
             Log.d("CARGARUSU", "Usuario cargado desde Room: ${_usuario.value?.fotoPerfilUri}")
         }
     }
+
+    @OptIn(UnstableApi::class)
+    fun refrescarUsuarioDesdeApi(id: UUID) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitInstance.api.obtenerUsuarioPorId(id.toString())
+                if (response.isSuccessful) {
+                    response.body()?.let { usuarioDTO ->
+                        val actualizado = usuarioDTO.toEntity()
+                        repository.guardarUsuario(actualizado)
+                        _usuario.value = actualizado
+                        Log.d("REFRESH", "Usuario actualizado desde API: ${actualizado.fotoPerfilUri}")
+                    }
+                } else {
+                    Log.e("REFRESH", "Error de API: ${response.code()} ${response.errorBody()?.string()}")
+                }
+            } catch (e: Exception) {
+                Log.e("REFRESH", "Error al refrescar usuario", e)
+            }
+        }
+    }
+
+
+
 
     suspend fun obtenerUsuario(): UsuarioEntity? {
         return repository.obtenerUsuario()
