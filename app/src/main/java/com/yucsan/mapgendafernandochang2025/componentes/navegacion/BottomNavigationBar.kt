@@ -44,12 +44,28 @@ fun BottomNavigationBar(navController: NavController, authState: StateFlow<AuthS
                 icon    = { Icon(screen.icon, screen.title, Modifier.height(30.dp)) },
                 label   = { Text(screen.title) },
                 selected = selected,
+
                 onClick = {
-                    if (sesionActiva && !selected) {
-                        navController.navigate(screen.route) {
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                    if (!sesionActiva) return@NavigationBarItem
+
+                    val currentRoute = currentDestination?.route
+
+                    if (screen == BottomBarScreen.MenuOffline) {
+                        // 🔁 Forzar reinicio de la sección si no estás en la raíz
+                        if (currentRoute != "menuoffline") {
+                            navController.navigate("menuoffline") {
+                                popUpTo("menuoffline") { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    } else {
+                        // 🧭 Navegación normal para otros botones
+                        if (!selected) {
+                            navController.navigate(screen.route) {
+                                popUpTo(screen.route) { inclusive = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     }
                 },
