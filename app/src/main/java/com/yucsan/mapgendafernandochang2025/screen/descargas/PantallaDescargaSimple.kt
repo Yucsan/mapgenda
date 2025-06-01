@@ -13,13 +13,14 @@ import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
 import com.yucsan.mapgendafernandochang2025.componentes.navegacion.DialogoConfirmacionBorrado
+import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 
 @Composable
-fun PantallaDescargaSimple(viewModel: LugarViewModel) {
+fun PantallaDescargaSimple(viewModel: LugarViewModel, ubicacionViewModel: UbicacionViewModel) {
     val context = LocalContext.current
     val cargando by viewModel.cargando.collectAsState()
     var mostrarDialogoBorrar by remember { mutableStateOf(false) }
@@ -48,12 +49,14 @@ fun PantallaDescargaSimple(viewModel: LugarViewModel) {
         BotonAccion(texto = "Guardar mis Lugares en la NUBE") {
             CoroutineScope(Dispatchers.IO).launch {
                 viewModel.sincronizarLugaresConApi()
+                ubicacionViewModel.sincronizarConApi(context)
             }
         }
 
         BotonAccion(texto = "Descargar mis Lugares de la NUBE") {
             CoroutineScope(Dispatchers.IO).launch {
                 viewModel.descargarLugaresDesdeBackend(context)
+                ubicacionViewModel.descargarUbicaciones(context)
             }
         }
 
@@ -81,6 +84,7 @@ fun PantallaDescargaSimple(viewModel: LugarViewModel) {
                 onConfirmar = {
                     mostrarDialogoBorrar = false
                     viewModel.limpiarLugares()
+                    ubicacionViewModel.eliminarTodasUbicaciones()
                     Toast.makeText(context, "Lugares eliminados correctamente", Toast.LENGTH_SHORT)
                         .show()
                 },

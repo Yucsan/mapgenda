@@ -2,6 +2,7 @@ package com.yucsan.mapgendafernandochang2025.viewmodel
 
 import android.Manifest
 import android.app.Application
+import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
@@ -9,13 +10,19 @@ import androidx.lifecycle.viewModelScope
 import com.google.android.gms.location.LocationServices
 import com.yucsan.mapgendafernandochang2025.entidad.UbicacionLocal
 import com.yucsan.mapgendafernandochang2025.repository.UbicacionRepository
+import com.yucsan.mapgendafernandochang2025.repository.UsuarioRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
+import android.widget.Toast
+import kotlinx.coroutines.Dispatchers
+
 
 class UbicacionViewModel(
     application: Application,
-    private val repository: UbicacionRepository
+    private val repository: UbicacionRepository,
+    private val usuarioRepository: UsuarioRepository
 ) : AndroidViewModel(application) {
 
     // ———————————————————————————————————————————————————————————————
@@ -117,4 +124,60 @@ class UbicacionViewModel(
             }
         }
     }
+
+
+    fun eliminarTodasUbicaciones() {
+        viewModelScope.launch {
+            repository.eliminarTodas()
+        }
+    }
+
+///----------------------------- funciones BACKEND -----------------------------
+
+
+    fun sincronizarConApi(context: Context) {
+        viewModelScope.launch {
+            val usuarioId = usuarioRepository.obtenerUsuario()?.id
+            val token = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+                .getString("jwt_token", null)
+
+            if (usuarioId != null && token != null) {
+                try {
+                    repository.sincronizarUbicacionesConBackend(usuarioId, token)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "📡 Ubicaciones sincronizadas", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "❌ Falló sincronización: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+    }
+
+    fun descargarUbicaciones(context: Context) {
+        viewModelScope.launch {
+            val usuarioId = usuarioRepository.obtenerUsuario()?.id
+            val token = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+                .getString("jwt_token", null)
+
+            if (usuarioId != null && token != null) {
+                try {
+                    repository.descargarUbicacionesDesdeBackend(usuarioId, token)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "⬇️ Ubicaciones descargadas", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "❌ Falló descarga: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+    }
+
+
+
+
 }

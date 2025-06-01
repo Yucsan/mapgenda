@@ -50,7 +50,7 @@ fun PantallaTabsDescarga(
                     navController = navController,
                     themeViewModel = themeViewModel
                 )
-                1 -> PantallaDescargaSimple(viewModel = lugarViewModel)
+                1 -> PantallaDescargaSimple(viewModel = lugarViewModel, ubicacionViewModel = ubicacionViewModel)
             }
         }
     }

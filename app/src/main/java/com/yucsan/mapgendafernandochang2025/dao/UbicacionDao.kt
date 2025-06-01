@@ -11,6 +11,10 @@ interface UbicacionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarUbicacion(ubicacion: UbicacionLocal)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertarTodas(ubicaciones: List<UbicacionLocal>)
+
+
     @Delete
     suspend fun eliminarUbicacion(ubicacion: UbicacionLocal)
 
@@ -31,6 +35,10 @@ interface UbicacionDao {
 
     @Insert
     suspend fun insertarUbicacionYRetornarId(ubicacion: UbicacionLocal): Long
+
+    @Query("DELETE FROM ubicaciones")
+    suspend fun eliminarTodas()
+
 
 
 }

@@ -38,5 +38,15 @@ object RetrofitInstance {
             .create(LugarApiService::class.java)
     }
 
+    val ubicacionApi: UbicacionApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(UbicacionApiService::class.java)
+    }
+
+
 
 }

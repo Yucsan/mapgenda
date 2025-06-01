@@ -8,7 +8,6 @@ import androidx.room.Relation
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
 import com.yucsan.mapgendafernandochang2025.entidad.UbicacionLocal
 
-
 @Entity(tableName = "rutas")
 data class RutaEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -49,7 +48,6 @@ data class RutaConLugaresOrdenados(
     val ruta: RutaEntity,
     val lugares: List<LugarLocal> // extraemos el lugar dentro de LugarConOrden
 )
-
 
 
 fun UbicacionLocal.toLugarLocalParaRuta(): LugarLocal {

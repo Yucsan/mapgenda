@@ -57,8 +57,9 @@ class MainActivity : ComponentActivity() {
             val ubicacionRepository = UbicacionRepository(database.ubicacionDao())
 
             val ubicacionViewModel: UbicacionViewModel = viewModel(
-                factory = UbicacionViewModelFactory(application, ubicacionRepository)
-            )
+                factory = UbicacionViewModelFactory(application, ubicacionRepository,
+                    UsuarioRepository(database.UsuarioDao())))
+
 
             val usuarioRepository = UsuarioRepository(database.UsuarioDao())
             val usuarioViewModel: UsuarioViewModel = viewModel(
