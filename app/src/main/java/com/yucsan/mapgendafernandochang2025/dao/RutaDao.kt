@@ -70,6 +70,8 @@ interface RutaDao {
     suspend fun obtenerLugaresOrdenadosPorRuta(rutaId: Long): List<LugarConOrden>
 
 
-
+    @Transaction
+    @Query("SELECT * FROM rutas")
+    suspend fun obtenerRutasConLugaresOnce(): List<RutaConLugares>
 
 }

@@ -30,9 +30,11 @@ fun EditarUbicacionDialog(
 ) {
     val context = LocalContext.current
     var nombre by remember { mutableStateOf(ubicacion.nombre) }
-    var tipo by remember { mutableStateOf(ubicacion.tipo) }
+    var tipo by remember { mutableStateOf(ubicacion.tipo.ifBlank { "provincia" }) }
+
+
     var mostrarConfirmacionBorrado by remember { mutableStateOf(false) }
-    val opcionesTipo = listOf("país", "provincia")
+    val opcionesTipo = listOf("provincia", "país")
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -97,7 +99,6 @@ fun EditarUbicacionDialog(
                 Button(
                     onClick = {
                         onGuardar(nombre, tipo)
-                        Toast.makeText(context, "Ubicación actualizada", Toast.LENGTH_SHORT).show()
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFF77C00),

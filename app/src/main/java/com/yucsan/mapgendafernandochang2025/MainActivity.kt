@@ -45,9 +45,14 @@ class MainActivity : ComponentActivity() {
                 GPSViewModelFactory(geoPosHandler, this)
             }
 
+            val usuarioRepository = UsuarioRepository(database.UsuarioDao())
+            val usuarioViewModel: UsuarioViewModel = viewModel(
+                factory = UsuarioViewModelFactory(usuarioRepository)
+            )
+
             val lugarOfflineViewModel: LugarRutaOfflineViewModel = viewModel()
             val rutaRepository = RutaRepository(database.rutaDao())
-            val rutaViewModel: RutaViewModel = viewModel(factory = RutaViewModelFactory(rutaRepository))
+            val rutaViewModel: RutaViewModel = viewModel(factory = RutaViewModelFactory(rutaRepository, usuarioRepository))
 
             val mapViewModel: MapViewModel = viewModel()
             val navegacionViewModel: NavegacionViewModel = viewModel()
@@ -60,11 +65,6 @@ class MainActivity : ComponentActivity() {
                 factory = UbicacionViewModelFactory(application, ubicacionRepository,
                     UsuarioRepository(database.UsuarioDao())))
 
-
-            val usuarioRepository = UsuarioRepository(database.UsuarioDao())
-            val usuarioViewModel: UsuarioViewModel = viewModel(
-                factory = UsuarioViewModelFactory(usuarioRepository)
-            )
 
             val authViewModel: AuthViewModel = viewModel(
                 factory = AuthViewModelFactory(usuarioViewModel)

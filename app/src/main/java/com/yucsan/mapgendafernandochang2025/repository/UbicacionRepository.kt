@@ -84,7 +84,7 @@ class UbicacionRepository(private val dao: UbicacionDao) {
         RetrofitInstance.setTokenProvider { token }
 
         try {
-            val listaDTO = RetrofitInstance.ubicacionApi.obtenerUbicaciones(usuarioId)
+            val listaDTO = RetrofitInstance.ubicacionApi.obtenerUbicaciones()
             val listaLocal = listaDTO.map { it.toEntity() }
 
             // Limpia la base local antes de insertar si quieres evitar duplicados

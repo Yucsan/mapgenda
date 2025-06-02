@@ -16,7 +16,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import android.widget.Toast
+import androidx.annotation.OptIn
+import androidx.media3.common.util.Log
+import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.Dispatchers
+import kotlin.math.pow
 
 
 class UbicacionViewModel(
@@ -59,17 +63,54 @@ class UbicacionViewModel(
         _query.value = nuevoTexto
     }
 
-    fun guardarUbicacion(nombre: String, lat: Double, lng: Double, tipo: String) {
+    @OptIn(UnstableApi::class)
+    suspend fun guardarUbicacion(nombre: String, lat: Double, lng: Double, tipo: String): Boolean {
         val nueva = UbicacionLocal(
-            nombre  = nombre,
+            nombre = nombre,
             latitud = lat,
-            longitud= lng,
-            tipo    = tipo
+            longitud = lng,
+            tipo = tipo
         )
-        viewModelScope.launch {
+
+        val existentes = repository.obtenerTodas().first() // lista actual desde base de datos
+
+        val umbral = when (tipo.trim().lowercase()) {
+            "provincia" -> 8000.0   // 8 km
+            "país" -> 100000.0      // 100 km
+            else -> 100.0           // fallback
+        }
+
+        val existeCercana = existentes.any {
+            it.tipo.trim().lowercase() == tipo.trim().lowercase() &&
+                    calcularDistanciaEnMetros(it.latitud, it.longitud, lat, lng) <= umbral
+        }
+
+        return if (!existeCercana) {
             repository.insertarUbicacion(nueva)
+            true
+        } else {
+            Log.w("UbicacionViewModel", "❌ Ya existe una ubicación '$tipo' cercana, no se guarda.")
+            false
         }
     }
+
+
+
+    private fun calcularDistanciaEnMetros(
+        lat1: Double, lon1: Double,
+        lat2: Double, lon2: Double
+    ): Double {
+        val R = 6371000.0 // Radio de la Tierra en metros
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = Math.sin(dLat / 2).pow(2.0) +
+                Math.cos(Math.toRadians(lat1)) *
+                Math.cos(Math.toRadians(lat2)) *
+                Math.sin(dLon / 2).pow(2.0)
+        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+        return R * c
+    }
+
 
     fun eliminarUbicacion(ubicacion: UbicacionLocal) {
         viewModelScope.launch {
@@ -156,6 +197,7 @@ class UbicacionViewModel(
         }
     }
 
+    @OptIn(UnstableApi::class)
     fun descargarUbicaciones(context: Context) {
         viewModelScope.launch {
             val usuarioId = usuarioRepository.obtenerUsuario()?.id
@@ -167,10 +209,12 @@ class UbicacionViewModel(
                     repository.descargarUbicacionesDesdeBackend(usuarioId, token)
                     withContext(Dispatchers.Main) {
                         Toast.makeText(context, "⬇️ Ubicaciones descargadas", Toast.LENGTH_SHORT).show()
+                        Log.d("UbicacionViewModel", "⬇️ Ubicaciones descargadas correctamente")
                     }
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(context, "❌ Falló descarga: ${e.message}", Toast.LENGTH_LONG).show()
+                        Log.d("UbicacionViewModel", "❌ Error al descargar ubicaciones: ${e.message}", e)
                     }
                 }
             }

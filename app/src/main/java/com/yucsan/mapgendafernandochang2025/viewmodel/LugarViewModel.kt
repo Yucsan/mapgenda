@@ -264,7 +264,7 @@ class LugarViewModel(
 
 
     fun actualizarUbicacion(lat: Double, lng: Double) {
-        Log.d("LugarViewModel", "📍 Ubicación actualizada: $lat, $lng")
+
         _ubicacion.value = lat to lng
     }
 

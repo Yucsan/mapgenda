@@ -7,10 +7,15 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+
+import androidx.compose.foundation.layout.BoxScope
+
+
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +41,7 @@ import com.yucsan.mapgendafernandochang2025.util.Secrets
 import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.MapViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission", "SuspiciousIndentation")
@@ -152,49 +158,93 @@ fun PantallaMapaUbicacion(
 
             // Diálogo para guardar ubicación
             if (mostrarDialogoGuardar.value && ubicacionSeleccionada != null) {
+                val scope = rememberCoroutineScope()
                 EditarUbicacionDialog(
                     ubicacion = UbicacionLocal(
                         nombre = "",
                         latitud = ubicacionSeleccionada!!.latitude,
                         longitud = ubicacionSeleccionada!!.longitude,
-                        tipo = "país"
+                        tipo = "provincia"
                     ),
-                    onDismiss = { mostrarDialogoGuardar.value = false },
-                    onGuardar = { nombre, tipo ->
-                        ubicacionViewModel.guardarUbicacion(
-                            nombre = nombre,
-                            lat = ubicacionSeleccionada!!.latitude,
-                            lng = ubicacionSeleccionada!!.longitude,
-                            tipo = tipo
-                        )
-                        Toast.makeText(context, "Ubicación guardada", Toast.LENGTH_SHORT).show()
+                    onDismiss = {
                         mostrarDialogoGuardar.value = false
+                        ubicacionSeleccionada = null // ✅ ELIMINA el marcador si se cancela
+                    },
+                    onGuardar = { nombre, tipo ->
+                        scope.launch {
+                            val guardado = ubicacionViewModel.guardarUbicacion(
+                                nombre = nombre,
+                                lat = ubicacionSeleccionada!!.latitude,
+                                lng = ubicacionSeleccionada!!.longitude,
+                                tipo = tipo
+                            )
 
-                        // 2️⃣ **NUEVO**: Actualizamos el LugarViewModel para emitir la nueva ubicación
-                        val nuevaLatLng = LatLng(
-                            ubicacionSeleccionada!!.latitude,
-                            ubicacionSeleccionada!!.longitude
-                        )
-                        lugarViewModel.actualizarUbicacionManual(nuevaLatLng)
-                        Log.d("DEBUG_UI", "🛠  Se emitió nueva ubicación: $nuevaLatLng")
+                            if (guardado) {
+                                Toast.makeText(context, "✅ Ubicación guardada", Toast.LENGTH_SHORT).show()
 
-                        if (desdeDescarga) {
-                            navController.navigate(Ruta.PantallaDescargas.ruta) {
-                                popUpTo(Ruta.PantallaDescargas.ruta) { inclusive = true }
+                                lugarViewModel.actualizarUbicacionManual(
+                                    LatLng(ubicacionSeleccionada!!.latitude, ubicacionSeleccionada!!.longitude)
+                                )
+
+                                if (desdeDescarga) {
+                                    navController.navigate(Ruta.PantallaDescargas.ruta) {
+                                        popUpTo(Ruta.PantallaDescargas.ruta) { inclusive = true }
+                                    }
+                                } else {
+                                    navController.popBackStack()
+                                }
+                            } else {
+                                Toast.makeText(context, "⚠️ Ya existe una ubicación cercana del mismo tipo", Toast.LENGTH_SHORT).show()
+                                ubicacionSeleccionada = null // ✅ Elimina marcador si NO se guarda
                             }
-                        } else {
-                            navController.popBackStack()
+
+                            mostrarDialogoGuardar.value = false
                         }
                     },
-                    onEliminar = { mostrarDialogoGuardar.value = false },
+                    onEliminar = {
+                        mostrarDialogoGuardar.value = false
+                        ubicacionSeleccionada = null // ✅ ELIMINA el marcador si se cancela
+                    },
                     onSeleccionarRuta = {
                         mostrarDialogoGuardar.value = false
+                        ubicacionSeleccionada = null // ✅ ELIMINA el marcador si se elige otra acción
                     }
                 )
             }
 
 
 
+
+            // Botón flotante para centrar en la ubicación actual
+            FloatingActionButton(
+                onClick = {
+                    val fusedLocationClient = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(context)
+                    fusedLocationClient.lastLocation
+                        .addOnSuccessListener { location ->
+                            if (location != null) {
+                                val userLatLng = LatLng(location.latitude, location.longitude)
+                                googleMap?.animateCamera(
+                                    CameraUpdateFactory.newLatLngZoom(userLatLng, 15f)
+                                )
+                            } else {
+                                Toast.makeText(context, "Ubicación no disponible", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(context, "Error al obtener ubicación", Toast.LENGTH_SHORT).show()
+                        }
+                },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = Color.White,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 16.dp, bottom = 16.dp)
+            ) {
+                Icon(Icons.Default.MyLocation, contentDescription = "Mi ubicación")
+            }
         }
-    }
+
+
+
+}
 

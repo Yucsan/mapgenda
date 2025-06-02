@@ -31,6 +31,7 @@ import com.yucsan.mapgendafernandochang2025.viewmodel.UsuarioViewModel
 import com.yucsan.mapgendafernandochang2025.mapper.toEntity
 import com.yucsan.mapgendafernandochang2025.servicio.backend.RetrofitInstance
 import com.yucsan.mapgendafernandochang2025.servicio.log.ApiService
+import com.yucsan.mapgendafernandochang2025.util.config.ApiConfig
 import com.yucsan.mapgendafernandochang2025.util.state.NetworkMonitor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,22 +69,16 @@ fun PantallaLoginGoogle(
             val idToken = account.idToken
             Log.d("ID_TOKEN", "👉 Token de Google obtenido: $idToken")
 
-// .baseUrl("https://backend-mapgenda.onrender.com/aventura/")  ********************************************************************************** direccion api en RENDER
-
-            // .baseUrl("http://192.168.0.11:8080/aventura/")
-
-            val client = Retrofit.Builder()
-                .baseUrl("https://backend-mapgenda.onrender.com/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-
             val service = RetrofitInstance.api
-
-
             CoroutineScope(Dispatchers.IO).launch {
                 try {
 
                     val response = service.loginConGoogle(mapOf("idToken" to idToken!!))
+                    RetrofitInstance.setTokenProvider {
+                        context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+                            .getString("jwt_token", null)
+                    }
+
                     if (response.isSuccessful) {
                         val loginResponse = response.body()
                         if (loginResponse != null) {
@@ -123,10 +118,12 @@ fun PantallaLoginGoogle(
                 .size(200.dp)
                 .clickable(enabled = hayConexion) {
                     googleSignInClient.signOut().addOnCompleteListener {
+                        context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+                            .edit().clear().apply() // ✅ Esto borra el JWT viejo
+
                         signInLauncher.launch(googleSignInClient.signInIntent)
                     }
                 }
-
         )
         if (!hayConexion) {
             Text(

@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.yucsan.mapgendafernandochang2025.dto.LugarDTO
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
+import com.yucsan.mapgendafernandochang2025.util.config.ApiConfig
 
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -12,20 +13,22 @@ import java.util.UUID
 class BackendLugarService {
 
 
-    private val retrofit = Retrofit.Builder()
-        .baseUrl("https://backend-mapgenda.onrender.com/") // ← Cambiar por tu IP local o ngrok
+   /* private val retrofit = Retrofit.Builder()
+        .baseUrl(ApiConfig.BASE_URL)
         .addConverterFactory(GsonConverterFactory.create())
-        .build()
+        .build()*/
 
-    private val api = retrofit.create(LugarApiService::class.java)
+    //private val api = retrofit.create(LugarApiService::class.java)
 
 
 
     suspend fun subirLugar(lugar: LugarLocal) {
+
         val retrofit = Retrofit.Builder()
-            .baseUrl("https://backend-mapgenda.onrender.com/")
+            .baseUrl(ApiConfig.BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
+
 
         val api = retrofit.create(LugarApiService::class.java)
 

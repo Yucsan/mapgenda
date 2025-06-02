@@ -678,16 +678,24 @@ fun PantallaMapaOffline(
                             ),
                             onDismiss = { mostrarDialogoGuardar.value = false },
                             onGuardar = { nombre, tipo ->
-                                ubicacionViewModel.guardarUbicacion(
-                                    nombre = nombre,
-                                    lat = ubicacionSeleccionada!!.latitude,
-                                    lng = ubicacionSeleccionada!!.longitude,
-                                    tipo = tipo
-                                )
-                                Toast.makeText(context, "Ubicación guardada", Toast.LENGTH_SHORT)
-                                    .show()
-                                mostrarDialogoGuardar.value = false
-                                pasoActual = 2
+                                scope.launch {
+                                    val guardado = ubicacionViewModel.guardarUbicacion(
+                                        nombre = nombre,
+                                        lat = ubicacionSeleccionada!!.latitude,
+                                        lng = ubicacionSeleccionada!!.longitude,
+                                        tipo = tipo
+                                    )
+
+                                    if (guardado) {
+                                        Toast.makeText(context, "✅ Ubicación guardada", Toast.LENGTH_SHORT).show()
+                                        lugarViewModel.actualizarUbicacionManual(ubicacionSeleccionada!!)
+                                    } else {
+                                        Toast.makeText(context, "⚠️ Ya existe una ubicación cercana", Toast.LENGTH_SHORT).show()
+                                    }
+
+                                    mostrarDialogoGuardar.value = false
+                                    pasoActual = 2
+                                }
                             },
                             onEliminar = { mostrarDialogoGuardar.value = false },
                             onSeleccionarRuta = {
@@ -696,7 +704,6 @@ fun PantallaMapaOffline(
                             }
                         )
                     }
-
 
                     if (mostrarDialogoGuardarRuta.value) {
                         var nombreRuta by remember { mutableStateOf("") }

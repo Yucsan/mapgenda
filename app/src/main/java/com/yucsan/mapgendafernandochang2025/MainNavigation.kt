@@ -89,7 +89,8 @@ fun MainNavigation(
                 lugarViewModel = lugarViewModel,
                 ubicacionViewModel = ubicacionViewModel,
                 navController = navController,
-                themeViewModel = themeViewModel
+                themeViewModel = themeViewModel,
+                rutaViewModel = rutaViewModel
             )
 
         }

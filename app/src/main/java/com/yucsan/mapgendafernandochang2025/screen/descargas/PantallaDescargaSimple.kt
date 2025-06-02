@@ -13,6 +13,7 @@ import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
 import com.yucsan.mapgendafernandochang2025.componentes.navegacion.DialogoConfirmacionBorrado
+import com.yucsan.mapgendafernandochang2025.viewmodel.RutaViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +21,7 @@ import kotlinx.coroutines.launch
 
 
 @Composable
-fun PantallaDescargaSimple(viewModel: LugarViewModel, ubicacionViewModel: UbicacionViewModel) {
+fun PantallaDescargaSimple(viewModel: LugarViewModel, ubicacionViewModel: UbicacionViewModel, rutaViewModel: RutaViewModel) {
     val context = LocalContext.current
     val cargando by viewModel.cargando.collectAsState()
     var mostrarDialogoBorrar by remember { mutableStateOf(false) }
@@ -46,17 +47,42 @@ fun PantallaDescargaSimple(viewModel: LugarViewModel, ubicacionViewModel: Ubicac
         Spacer(modifier = Modifier.height(16.dp))
 
 
-        BotonAccion(texto = "Guardar mis Lugares en la NUBE") {
+        BotonAccion(texto = "Sube Lugares") {
             CoroutineScope(Dispatchers.IO).launch {
                 viewModel.sincronizarLugaresConApi()
+            }
+        }
+
+        BotonAccion(texto = "Sube Ubicaciones") {
+            CoroutineScope(Dispatchers.IO).launch {
                 ubicacionViewModel.sincronizarConApi(context)
             }
         }
 
-        BotonAccion(texto = "Descargar mis Lugares de la NUBE") {
+        BotonAccion(texto = "SUBE RUTAS") {
+            CoroutineScope(Dispatchers.IO).launch {
+                rutaViewModel.subirRutasLocalesAlBackend(context)
+            }
+        }
+
+
+        BotonAccion(texto = "Descargar mis Lugares") {
             CoroutineScope(Dispatchers.IO).launch {
                 viewModel.descargarLugaresDesdeBackend(context)
+
+            }
+        }
+
+        BotonAccion(texto = "Descargar mis ubicaciones") {
+            CoroutineScope(Dispatchers.IO).launch {
                 ubicacionViewModel.descargarUbicaciones(context)
+            }
+        }
+
+
+        BotonAccion(texto = "Descargar RUTAS") {
+            CoroutineScope(Dispatchers.IO).launch {
+                rutaViewModel.descargarRutasDesdeBackend(context)
             }
         }
 
@@ -66,7 +92,7 @@ fun PantallaDescargaSimple(viewModel: LugarViewModel, ubicacionViewModel: Ubicac
             Text("Cargando lugares...", modifier = Modifier.padding(top = 8.dp))
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = { mostrarDialogoBorrar = true },

@@ -1,5 +1,6 @@
 package com.yucsan.mapgendafernandochang2025.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
@@ -10,12 +11,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import android.util.Log
+import android.widget.Toast
+import com.yucsan.mapgendafernandochang2025.repository.UsuarioRepository
 
 import com.yucsan.mapmapgendafernandochang2025.entidad.RutaConLugares
 import com.yucsan.mapmapgendafernandochang2025.entidad.RutaConLugaresOrdenados
 import com.yucsan.mapmapgendafernandochang2025.entidad.RutaEntity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class RutaViewModel(private val repository: RutaRepository) : ViewModel() {
+class RutaViewModel(private val repository: RutaRepository, private val usuarioRepository: UsuarioRepository) : ViewModel() {
 
     private val _rutas = MutableStateFlow<List<RutaConLugares>>(emptyList())
     val rutas: StateFlow<List<RutaConLugares>> = _rutas.asStateFlow()
@@ -88,6 +93,57 @@ class RutaViewModel(private val repository: RutaRepository) : ViewModel() {
             onResultado(resultado)
         }
     }
+
+    fun descargarRutasDesdeBackend(context: Context) {
+        viewModelScope.launch {
+            val usuarioId = usuarioRepository.obtenerUsuario()?.id
+            val token = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+                .getString("jwt_token", null)
+
+            if (usuarioId != null && token != null) {
+                try {
+                    repository.descargarRutasDesdeBackend(usuarioId, token)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "⬇️ Rutas descargadas correctamente", Toast.LENGTH_SHORT).show()
+                        Log.d("RutaViewModel", "⬇️ Rutas descargadas correctamente")
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "❌ Error al descargar rutas: ${e.message}", Toast.LENGTH_LONG).show()
+                        Log.e("RutaViewModel", "❌ Error al descargar rutas: ${e.message}", e)
+                    }
+                }
+            }
+        }
+    }
+
+    fun subirRutasLocalesAlBackend(context: Context) {
+        viewModelScope.launch {
+            val usuarioId = usuarioRepository.obtenerUsuario()?.id
+            val token = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+                .getString("jwt_token", null)
+            if (token != null) {
+                Log.d("TOKEN_DEBUG", "Token usado para subida: ${token}")
+            }
+
+
+            if (usuarioId != null && token != null) {
+                try {
+                    repository.subirTodasLasRutasLocalesAlBackend(usuarioId, token)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "🚀 Rutas subidas al backend", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "❌ Falló subida: ${e.message}", Toast.LENGTH_LONG).show()
+                        Log.d("RutaViewModel", "❌ Error al subir rutas: ${e.message}", e)
+                    }
+                }
+            }
+        }
+    }
+
+
 }
 
 

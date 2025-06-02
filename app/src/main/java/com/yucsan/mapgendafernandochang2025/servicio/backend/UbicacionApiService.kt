@@ -11,6 +11,6 @@ interface UbicacionApiService {
     @POST("ubicaciones")
     suspend fun subirUbicacion(@Body dto: UbicacionDTO): Response<UbicacionDTO>
 
-    @GET("ubicaciones/usuario/{usuarioId}")
-    suspend fun obtenerUbicaciones(@Path("usuarioId") usuarioId: String): List<UbicacionDTO>
+    @GET("ubicaciones/usuario")
+    suspend fun obtenerUbicaciones(): List<UbicacionDTO>
 }

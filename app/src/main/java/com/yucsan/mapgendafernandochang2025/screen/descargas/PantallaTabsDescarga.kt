@@ -17,6 +17,7 @@ import com.yucsan.mapgendafernandochang2025.viewmodel.*
 fun PantallaTabsDescarga(
     lugarViewModel: LugarViewModel,
     ubicacionViewModel: UbicacionViewModel,
+    rutaViewModel: RutaViewModel,
     navController: NavController,
     themeViewModel: ThemeViewModel
 ) {
@@ -50,7 +51,7 @@ fun PantallaTabsDescarga(
                     navController = navController,
                     themeViewModel = themeViewModel
                 )
-                1 -> PantallaDescargaSimple(viewModel = lugarViewModel, ubicacionViewModel = ubicacionViewModel)
+                1 -> PantallaDescargaSimple(viewModel = lugarViewModel, ubicacionViewModel = ubicacionViewModel, rutaViewModel = rutaViewModel)
             }
         }
     }
