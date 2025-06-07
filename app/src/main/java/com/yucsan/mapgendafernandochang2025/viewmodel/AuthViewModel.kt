@@ -58,12 +58,13 @@ class AuthViewModel(
 
     fun iniciarSesion(context: Context, usuario: UsuarioEntity, token: String) {
         viewModelScope.launch {
-            usuarioViewModel.guardarUsuario(usuario)
+            val usuarioSincronizado = usuario.copy(sincronizado = true)
+            usuarioViewModel.guardarUsuario(usuarioSincronizado)
             guardarToken(context, token)
 
             RetrofitInstance.setTokenProvider { obtenerToken(context) }
 
-            _authState.value = AuthState.Autenticado(usuario, token)
+            _authState.value = AuthState.Autenticado(usuarioSincronizado, token)
             usuarioViewModel.sincronizarUsuarioConBackend(usuario.id) // Aseguramos que el usuario esté sincronizado
         }
     }

@@ -30,6 +30,13 @@ class UsuarioRepository(private val usuarioDao: UsuarioDao) {
         }
     }
 
+    suspend fun obtenerUsuarioSincronizado(): UsuarioEntity? {
+        return withContext(Dispatchers.IO) {
+            usuarioDao.obtenerUsuarioSincronizado()
+        }
+    }
+
+
     suspend fun cerrarSesion() {
         withContext(Dispatchers.IO) {
             usuarioDao.eliminarUsuario()

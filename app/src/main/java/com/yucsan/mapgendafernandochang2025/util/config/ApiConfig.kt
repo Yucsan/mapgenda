@@ -8,7 +8,7 @@ object ApiConfig {
     }
 
     // Cambia esto manualmente para seleccionar el entorno
-    var currentEnvironment: ApiEnvironment = ApiEnvironment.LOCAL
+    var currentEnvironment: ApiEnvironment = ApiEnvironment.RENDER
 
     val BASE_URL: String
         get() = currentEnvironment.url

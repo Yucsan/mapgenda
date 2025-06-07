@@ -62,11 +62,19 @@ class UbicacionRepository(private val dao: UbicacionDao) {
     suspend fun sincronizarUbicacionesConBackend(usuarioId: String, token: String) {
         val ubicaciones = obtenerTodas().first()
 
+        Log.d("SYNC_UBICACION", "Sincronizando ${ubicaciones.size} ubicaciones con el backend")
+
         RetrofitInstance.setTokenProvider { token }
+
+
+
+
 
         for (ubicacion in ubicaciones) {
             try {
                 val dto = ubicacion.toDTO(usuarioId)
+                Log.d("DTO_DEBUG", "Subiendo: $dto")
+
                 val response = RetrofitInstance.ubicacionApi.subirUbicacion(dto)
                 if (response.isSuccessful) {
                     Log.d("SYNC_UBICACION", "✅ Subida: ${dto.nombre}")

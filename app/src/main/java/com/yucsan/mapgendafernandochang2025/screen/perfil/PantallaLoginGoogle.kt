@@ -119,10 +119,14 @@ fun PantallaLoginGoogle(
                 .clickable(enabled = hayConexion) {
                     googleSignInClient.signOut().addOnCompleteListener {
                         context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-                            .edit().clear().apply() // ✅ Esto borra el JWT viejo
+                            .edit()
+                            .remove("jwt_token")      // 👈 Borra token viejo
+                            .remove("usuario_id")     // 👈 Borra usuario activo anterior
+                            .apply()
 
                         signInLauncher.launch(googleSignInClient.signInIntent)
                     }
+
                 }
         )
         if (!hayConexion) {

@@ -16,5 +16,6 @@ data class UsuarioEntity(
     val direccion: String?,
     val descripcion: String?,
     val fotoPerfilUri: String? = null,
-    val verificado: Boolean
+    val verificado: Boolean,
+    val sincronizado: Boolean = false
 )

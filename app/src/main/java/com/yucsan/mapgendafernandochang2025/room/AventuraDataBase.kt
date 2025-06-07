@@ -30,7 +30,7 @@ import com.yucsan.mapgendafernandochang2025.entidad.UsuarioEntity
         RutaLugarCrossRef::class,
         UsuarioEntity::class
     ],
-    version = 14,
+    version = 15,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

@@ -14,6 +14,14 @@ interface UsuarioDao {
     @Query("SELECT * FROM usuario LIMIT 1")
     suspend fun obtenerUsuario(): UsuarioEntity?
 
+    @Query("SELECT * FROM usuario WHERE sincronizado = 1 LIMIT 1")
+    suspend fun obtenerUsuarioSincronizado(): UsuarioEntity?
+
+    @Query("UPDATE usuario SET sincronizado = 1 WHERE id = :id")
+    suspend fun marcarComoSincronizado(id: String)
+
+
+
     @Query("DELETE FROM usuario")
     suspend fun eliminarUsuario()
 }

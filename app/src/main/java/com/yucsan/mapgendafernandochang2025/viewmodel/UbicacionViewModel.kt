@@ -191,8 +191,12 @@ class UbicacionViewModel(
     fun eliminarTodasUbicaciones() = viewModelScope.launch { repository.eliminarTodas() }
 
     // ── sync backend ───────────────────────────────────────────────────────────
+    @OptIn(UnstableApi::class)
     fun sincronizarConApi(context: Context) = viewModelScope.launch {
-        val usuarioId = usuarioRepository.obtenerUsuario()?.id
+
+        val usuarioId = usuarioRepository.obtenerUsuarioSincronizado()?.id
+        Log.d("usuario", "Usuario ID: $usuarioId")
+
         val token = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
             .getString("jwt_token", null)
 

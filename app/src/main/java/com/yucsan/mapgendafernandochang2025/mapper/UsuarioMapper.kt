@@ -16,7 +16,8 @@ fun UsuarioDTO.toEntity(): UsuarioEntity {
         direccion = direccion,
         descripcion = descripcion,
         fotoPerfilUri = fotoPerfilUrl,
-        verificado = verificado
+        verificado = verificado,
+        sincronizado = true
     )
 }
 
