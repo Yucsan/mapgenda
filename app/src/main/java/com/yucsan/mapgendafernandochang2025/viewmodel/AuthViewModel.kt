@@ -1,6 +1,7 @@
 package com.yucsan.mapgendafernandochang2025.viewmodel
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.yucsan.mapgendafernandochang2025.entidad.UsuarioEntity
@@ -18,19 +19,42 @@ class AuthViewModel(
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
-    // 👇 ahora el contexto lo recibimos desde afuera
-    fun initAuth(context: Context) {
-        viewModelScope.launch {
-            val usuario = usuarioViewModel.obtenerUsuario()
-            val token = obtenerToken(context)
+    /*‼️ nuevo */
+    private var inicializado = false
 
-            if (usuario != null && token != null) {
-                _authState.value = AuthState.Autenticado(usuario, token)
-            } else {
+    fun initAuth(context: Context) {
+        if (inicializado) return           // ⬅️  se ignora la 2ª llamada
+        inicializado = true
+
+        Log.d("AUTH", "initAuth() → Loading")
+
+        viewModelScope.launch {
+            // Verificar si es primera instalación
+            val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+            val esPrimeraInstalacion = !prefs.contains("primera_instalacion")
+            
+            if (esPrimeraInstalacion) {
+                // Marcar que ya no es primera instalación
+                prefs.edit().putBoolean("primera_instalacion", false).apply()
+                // Forzar estado NoAutenticado
                 _authState.value = AuthState.NoAutenticado
+                return@launch
             }
+
+            val usuario = usuarioViewModel.obtenerUsuario()
+            val token   = obtenerToken(context)
+
+            val nuevoEstado = if (usuario != null && token != null)
+                AuthState.Autenticado(usuario, token)
+            else
+                AuthState.NoAutenticado
+
+            _authState.value = nuevoEstado
+            Log.d("AUTH", "initAuth() → $nuevoEstado")
         }
     }
+
+
 
     fun iniciarSesion(context: Context, usuario: UsuarioEntity, token: String) {
         viewModelScope.launch {

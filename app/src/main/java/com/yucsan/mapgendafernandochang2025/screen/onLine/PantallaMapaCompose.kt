@@ -1,11 +1,15 @@
 package com.yucsan.mapgendafernandochang2025.screen.onLine
 
+import android.content.Context
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.Brightness7
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,10 +18,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.core.content.ContextCompat
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import com.yucsan.mapgendafernandochang2025.ThemeViewModel
@@ -25,16 +34,12 @@ import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
 import com.yucsan.mapgendafernandochang2025.screens.mapa.alertas.AgregarLugarDialog
 import com.yucsan.mapgendafernandochang2025.screens.mapa.alertas.DetalleLugarDialog
 import com.yucsan.mapgendafernandochang2025.util.Secrets
-
-import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
-import com.yucsan.mapgendafernandochang2025.viewmodel.MapViewModel
-import com.yucsan.mapgendafernandochang2025.viewmodel.NavegacionViewModel
 import com.yucsan.mapgendafernandochang2025.util.MarcadorIconoUtils.generarIconoConTextoSobreImagen
 import com.yucsan.mapgendafernandochang2025.util.MarcadorIconoUtils.getDrawableForCategoria
 import com.yucsan.mapgendafernandochang2025.util.state.NetworkMonitor
+import com.yucsan.mapgendafernandochang2025.viewmodel.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
@@ -44,7 +49,8 @@ fun PantallaMapaCompose(
     mapViewModel: MapViewModel,
     navController: NavController,
     themeViewModel: ThemeViewModel,
-    networkMonitor: NetworkMonitor
+    networkMonitor: NetworkMonitor,
+    ubicacionViewModel: UbicacionViewModel
 ) {
     val context = LocalContext.current
     val hayConexion by networkMonitor.isConnected.collectAsState()
@@ -73,6 +79,45 @@ fun PantallaMapaCompose(
     val snackbarHostState = remember { SnackbarHostState() }
 
     val todos by viewModelLugar.todosLosLugares.collectAsState()
+    val ubicacionActual by ubicacionViewModel.ubicacionActual.collectAsState()
+
+    var isMapLoading by remember { mutableStateOf(true) }
+    var googleMap by remember { mutableStateOf<GoogleMap?>(null) }
+
+    val sharedPrefs = context.getSharedPreferences("map_prefs", 0)
+    var mostrarBienvenida by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (!sharedPrefs.getBoolean("bienvenida_mostrada", false)) {
+            mostrarBienvenida = true
+            sharedPrefs.edit().putBoolean("bienvenida_mostrada", true).apply()
+        }
+    }
+
+    // Estado para controlar la inicialización del mapa
+    LaunchedEffect(Unit) {
+        delay(1000)
+        isMapLoading = false
+    }
+
+    // Efecto para inicializar el mapa cuando esté listo
+    LaunchedEffect(isMapLoading) {
+        googleMap?.let { safeMap ->
+            if (!isMapLoading) {
+                mapViewModel.initializeMap(safeMap)
+            }
+        }
+    }
+
+    // Cuando llegue la ubicación, centra la cámara automáticamente
+    LaunchedEffect(ubicacionActual) {
+        ubicacionActual?.let { (lat, lng) ->
+            cameraPositionState.position = CameraPosition.fromLatLngZoom(
+                LatLng(lat, lng), 14f
+            )
+
+        }
+    }
     LaunchedEffect(Unit) {
         println("🔍 Total lugares locales: ${todos.size}")
     }
@@ -105,9 +150,10 @@ fun PantallaMapaCompose(
     // Posicionar cámara en la ubicación
     LaunchedEffect(ubicacion) {
         ubicacion?.let { (lat, lng) ->
-            cameraPositionState.animate(
-                CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 13f)
+            cameraPositionState.position = CameraPosition.fromLatLngZoom(
+                LatLng(lat, lng), 14f
             )
+
         }
     }
 
@@ -203,203 +249,259 @@ fun PantallaMapaCompose(
 
 
     Box(Modifier.fillMaxSize()) {
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 16.dp)
+        if (isMapLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center)
+            )
+        }
+        if (mostrarBienvenida) {
+        AlertDialog(
+            onDismissRequest = { mostrarBienvenida = false },
+            confirmButton = {
+                TextButton(onClick = { mostrarBienvenida = false }) {
+                    Text("Empezar")
+                }
+            },
+            title = {
+                Text("¡Bienvenido a Mapgenda!")
+            },
+            text = {
+                Text("Usa el botón azul para centrarte, filtra lugares y explora tu zona. ¡Disfruta!")
+            }
         )
 
-        if (modoAgregarLugar) {
-            Box(
+    } else {
+            SnackbarHost(
+                hostState = snackbarHostState,
                 modifier = Modifier
-                    .fillMaxWidth()
                     .align(Alignment.TopCenter)
-                    .padding(12.dp)
-                    .zIndex(2f)
-            ) {
-                Surface(
-                    color = Color(0xFFE0F7FA),
-                    shape = MaterialTheme.shapes.medium,
-                    shadowElevation = 4.dp,
-                    modifier = Modifier.fillMaxWidth()
+                    .padding(top = 16.dp)
+            )
+
+            if (modoAgregarLugar) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .padding(12.dp)
+                        .zIndex(2f)
                 ) {
-                    Text(
-                        text = "Selecciona un nuevo lugar tocando en el mapa.",
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Black
+                    Surface(
+                        color = Color(0xFFE0F7FA),
+                        shape = MaterialTheme.shapes.medium,
+                        shadowElevation = 4.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Selecciona un nuevo lugar tocando en el mapa.",
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Black
+                        )
+                    }
+                }
+            }
+
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState,
+                properties = MapProperties(
+                    isMyLocationEnabled = true
+                ),
+                uiSettings = MapUiSettings(zoomControlsEnabled = false),
+                onMapLoaded = {
+                    isMapLoading = false
+                    Log.d("MAP_READY", "✅ Mapa completamente cargado")
+                },
+                onMapClick = { latLng ->
+                    if (modoAgregarLugar) {
+                        latLngSeleccionado = latLng
+                        nombreNuevoLugar = ""
+                        descripcionNuevoLugar = ""
+                    }
+                }
+            ) {
+                Log.d("DEBUG_MAP", "🗺 Pintando ${lugaresFiltrados.size} marcadores en el mapa")
+
+                // Mostrar marcadores
+                lugaresFiltrados.forEach { lugar ->
+                    val drawableRes = getDrawableForCategoria(lugar.categoriaGeneral)
+                    val iconoEscalado = crearIconoRedimensionado(context, drawableRes, 120, 120)
+                    MarkerInfoWindow(
+                        state = MarkerState(LatLng(lugar.latitud, lugar.longitud)),
+                        icon =  generarIconoConTextoSobreImagen(context, lugar.nombre, drawableRes),
+                        title = lugar.nombre,
+                        onClick = {
+                            lugarSeleccionado = lugar
+                            true
+                        }
                     )
                 }
-            }
-        }
 
-        GoogleMap(
-            modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
-            properties = MapProperties(isMyLocationEnabled = true),
-            uiSettings = MapUiSettings(zoomControlsEnabled = false),
-            onMapClick = { latLng ->
-                if (modoAgregarLugar) {
-                    latLngSeleccionado = latLng
-                    nombreNuevoLugar = ""
-                    descripcionNuevoLugar = ""
+                if (mostrarHalo && ultimoLugarId != null) {
+                    lugaresFiltrados.find { it.id == ultimoLugarId }?.let { lugar ->
+                        Circle(
+                            center = LatLng(lugar.latitud, lugar.longitud),
+                            radius = 100.0,
+                            strokeColor = Color.Magenta,
+                            fillColor = Color.Magenta.copy(alpha = 0.3f),
+                            strokeWidth = 4f
+                        )
+                    }
                 }
             }
-        ) {
 
-            Log.d("DEBUG_MAP", "🗺 Pintando ${lugaresFiltrados.size} marcadores en el mapa")
-
-            // Mostrar marcadores
-            lugaresFiltrados.forEach { lugar ->
-                val drawableRes = getDrawableForCategoria(lugar.categoriaGeneral)
-                Marker(
-                    state = MarkerState(LatLng(lugar.latitud, lugar.longitud)),
-                    icon = generarIconoConTextoSobreImagen(context, lugar.nombre, drawableRes),
-                    onClick = {
-                        lugarSeleccionado = lugar
-                        true
-                    }
+            if (!hayConexion) {
+                Text(
+                    text = "Modo sin conexión: funciones limitadas.",
+                    color = Color.Red,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
 
-            if (mostrarHalo && ultimoLugarId != null) {
-                lugaresFiltrados.find { it.id == ultimoLugarId }?.let { lugar ->
-                    Circle(
-                        center = LatLng(lugar.latitud, lugar.longitud),
-                        radius = 100.0, // metros
-                        strokeColor = Color.Magenta,
-                        fillColor = Color.Magenta.copy(alpha = 0.3f),
-                        strokeWidth = 4f
-                    )
-                }
-            }
-        }
-
-        if (!hayConexion) {
-            Text(
-                text = "Modo sin conexión: funciones limitadas.",
-                color = Color.Red,
+            // UI superpuesta (botones, loader, filtros, dialogos)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.End,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
+                    .padding(end = 16.dp, bottom = 100.dp)
+                    .align(Alignment.BottomEnd),
+            ) {
 
-        // UI superpuesta (botones, loader, filtros, dialogos)
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.End,
-            modifier = Modifier
-                .padding(end = 16.dp, bottom = 100.dp)
-                .align(Alignment.BottomEnd),
-        ) {
-            if (!modoAgregarLugar) {
                 FloatingActionButton(
                     shape = CircleShape,
                     containerColor = MaterialTheme.colorScheme.primary,
                     onClick = {
-                    navController.navigate("filtro")
-                }) {
-                    Icon(Icons.Default.FilterList, contentDescription = "Filtrar lugares")
+                        ubicacionTiempoReal?.let { (lat, lng) ->
+                            scope.launch {
+                                cameraPositionState.animate(
+                                    CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 15f)
+                                )
+                                centradoManualmente.value = true
+                            }
+                        }
+                    }
+                ) {
+                    Icon(Icons.Default.MyLocation, contentDescription = "Centrar en mi ubicación")
+                }
+
+
+
+
+                if (!modoAgregarLugar) {
+                    FloatingActionButton(
+                        shape = CircleShape,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        onClick = {
+                        navController.navigate("filtro")
+                    }) {
+                        Icon(Icons.Default.FilterList, contentDescription = "Filtrar lugares")
+                    }
+                }
+
+                FloatingActionButton(
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    onClick = {
+                        modoAgregarLugar = true
+
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "Toca en el mapa para seleccionar el nuevo lugar.",
+                                duration = SnackbarDuration.Short
+                            )
+                        }
+                    }) {
+                    Text("+")
                 }
             }
 
+            // Botón pequeño inferior izquierdo
             FloatingActionButton(
+                onClick = { themeViewModel.toggleTheme() },
+                modifier = Modifier
+                    .size(48.dp)
+                    .padding(start = 16.dp, bottom = 16.dp)
+                    .align(Alignment.BottomStart),
                 shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primary,
-                onClick = {
-                    modoAgregarLugar = true
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(
+                    imageVector = if (isDarkMode) Icons.Filled.Brightness7 else Icons.Filled.Brightness4,
+                    contentDescription = "Cambiar tema",
+                    tint = Color.White
+                )
+            }
 
-                    scope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = "Toca en el mapa para seleccionar el nuevo lugar.",
-                            duration = SnackbarDuration.Short
+            if (cargando) {
+                LinearProgressIndicator(Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp))
+            }
+
+            lugarSeleccionado?.let { lugar ->
+                DetalleLugarDialog(
+                    lugar = lugar,
+                    apiKey = Secrets.GOOGLE_MAPS_API_KEY,
+                    viewModelLugar = viewModelLugar,
+                    navegacionViewModel = navegacionViewModel,
+                    onDismiss = {
+                        lugarSeleccionado = null
+                    },
+                    ubicacionActual = ubicacionTiempoReal,
+                    hayConexion = hayConexion
+                )
+            }
+
+            if (latLngSeleccionado != null && modoAgregarLugar) {
+                AgregarLugarDialog(
+                    latLngSeleccionado = latLngSeleccionado!!,
+                    categoriasDisponibles = listOf("restaurant", "park", "museum", "cafe", "custom"),
+                    onGuardar = { nuevoLugar ->
+                        val categoriaPadre = nuevoLugar.categoriaGeneral?.takeIf { it.isNotBlank() } ?: "custom"
+                        val subcategoria = nuevoLugar.subcategoria?.takeIf { it.isNotBlank() } ?: "custom"
+
+                        val lugarConFallback = nuevoLugar.copy(
+                            categoriaGeneral = categoriaPadre,
+                            subcategoria = subcategoria
                         )
-                    }
-                }) {
-                Text("+")
+
+                        // Guardar con categorías seguras
+                        viewModelLugar.agregarLugar(lugarConFallback)
+
+                        // Forzar filtros para asegurar aparición inmediata
+                        viewModelLugar.actualizarCategorias(setOf(categoriaPadre))
+                        viewModelLugar.actualizarFiltrosActivos(setOf(subcategoria))
+
+                        // 👇 Forzar recarga tras agregar
+                        viewModelLugar.recargarLugares()
+
+
+                        latLngSeleccionado = null
+                        modoAgregarLugar = false
+                    },
+                    onDismiss = {
+                        latLngSeleccionado = null
+                        modoAgregarLugar = false
+                    },
+                    mapScope = scope,
+                    googleMap = googleMap,
+                    guardarCamara = { mapViewModel.guardarCamara(cameraPositionState.position) }
+                )
             }
         }
-
-        // Botón pequeño inferior izquierdo
-        FloatingActionButton(
-            onClick = { themeViewModel.toggleTheme() },
-            modifier = Modifier
-                .size(48.dp)
-                .padding(start = 16.dp, bottom = 16.dp)
-                .align(Alignment.BottomStart),
-            shape = CircleShape,
-            containerColor = MaterialTheme.colorScheme.primary
-        ) {
-            Icon(
-                imageVector = if (isDarkMode) Icons.Filled.Brightness7 else Icons.Filled.Brightness4,
-                contentDescription = "Cambiar tema",
-                tint = Color.White
-            )
-        }
-
-        if (cargando) {
-            LinearProgressIndicator(Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp))
-        }
-
-        lugarSeleccionado?.let { lugar ->
-            DetalleLugarDialog(
-                lugar = lugar,
-                apiKey = Secrets.GOOGLE_MAPS_API_KEY,
-                viewModelLugar = viewModelLugar,
-                navegacionViewModel = navegacionViewModel,
-                onDismiss = {
-                    lugarSeleccionado = null
-                },
-                ubicacionActual = ubicacionTiempoReal,
-                hayConexion = hayConexion
-            )
-        }
-
-        if (latLngSeleccionado != null && modoAgregarLugar) {
-            AgregarLugarDialog(
-                latLngSeleccionado = latLngSeleccionado!!,
-                categoriasDisponibles = listOf("restaurant", "park", "museum", "cafe", "custom"),
-                onGuardar = { nuevoLugar ->
-                    val categoriaPadre = nuevoLugar.categoriaGeneral?.takeIf { it.isNotBlank() } ?: "custom"
-                    val subcategoria = nuevoLugar.subcategoria?.takeIf { it.isNotBlank() } ?: "custom"
-
-                    val lugarConFallback = nuevoLugar.copy(
-                        categoriaGeneral = categoriaPadre,
-                        subcategoria = subcategoria
-                    )
-
-                    // Guardar con categorías seguras
-                    viewModelLugar.agregarLugar(lugarConFallback)
-
-                    // Forzar filtros para asegurar aparición inmediata
-                    viewModelLugar.actualizarCategorias(setOf(categoriaPadre))
-                    viewModelLugar.actualizarFiltrosActivos(setOf(subcategoria))
-
-                    // 👇 Forzar recarga tras agregar
-                    viewModelLugar.recargarLugares()
-
-
-                    latLngSeleccionado = null
-                    modoAgregarLugar = false
-                },
-                onDismiss = {
-                    latLngSeleccionado = null
-                    modoAgregarLugar = false
-                },
-                mapScope = scope,
-                googleMap = null,
-                guardarCamara = { mapViewModel.guardarCamara(cameraPositionState.position) }
-            )
-        }
-
-
-
     }
 }
 
+fun crearIconoRedimensionado(context: Context, drawableResId: Int, ancho: Int, alto: Int): BitmapDescriptor {
+    val drawable = ContextCompat.getDrawable(context, drawableResId) ?: return BitmapDescriptorFactory.defaultMarker()
+    val bitmap = Bitmap.createBitmap(ancho, alto, Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(bitmap)
+    drawable.setBounds(0, 0, ancho, alto)
+    drawable.draw(canvas)
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
+}

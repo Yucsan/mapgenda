@@ -31,10 +31,23 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var geoPosHandler: GeoPosHandler
 
+    // ‼️  Crea aquí los VM que necesites antes del UI
+    private val usuarioRepository by lazy {
+        UsuarioRepository(DatabaseProvider.getDatabase(this).UsuarioDao())
+    }
+    private val usuarioViewModel: UsuarioViewModel by viewModels {
+        UsuarioViewModelFactory(usuarioRepository)
+    }
+    private val authViewModel: AuthViewModel by viewModels {
+        AuthViewModelFactory(usuarioViewModel)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         geoPosHandler = GeoPosHandler(this)
+
+        authViewModel.initAuth(applicationContext)
 
         setContent {
             val context = LocalContext.current

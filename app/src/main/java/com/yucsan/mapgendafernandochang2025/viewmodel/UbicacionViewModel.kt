@@ -1,27 +1,35 @@
 package com.yucsan.mapgendafernandochang2025.viewmodel
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Location
+import android.os.Looper
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.*
 import com.yucsan.mapgendafernandochang2025.entidad.UbicacionLocal
 import com.yucsan.mapgendafernandochang2025.repository.UbicacionRepository
 import com.yucsan.mapgendafernandochang2025.repository.UsuarioRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import android.widget.Toast
-import androidx.annotation.OptIn
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.math.pow
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
-import kotlinx.coroutines.Dispatchers
-import kotlin.math.pow
-
+import kotlinx.coroutines.CoroutineStart
+import androidx.annotation.OptIn
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.time.Duration.Companion.seconds
 
 class UbicacionViewModel(
     application: Application,
@@ -29,78 +37,134 @@ class UbicacionViewModel(
     private val usuarioRepository: UsuarioRepository
 ) : AndroidViewModel(application) {
 
-    // ———————————————————————————————————————————————————————————————
-    // 1️⃣ Lista de ubicaciones persistidas (igual que antes)
+    /*────────────────────────────────────────  NUEVO  ────────────────────────────────────────*/
+    sealed interface EstadoUbicacion {
+        object SinPermiso            : EstadoUbicacion
+        object EsperandoFix          : EstadoUbicacion
+        data class Disponible(val l: Location) : EstadoUbicacion
+    }
+
+    /** Flujo principal que la UI debe observar */
+    private val _estado              = MutableStateFlow<EstadoUbicacion>(EstadoUbicacion.SinPermiso)
+    val estado: StateFlow<EstadoUbicacion> = _estado.asStateFlow()
+
+    /** Alias legacy para el resto de tu código que esperaba Pair<Double,Double>? */
+    val ubicacionActual: StateFlow<Pair<Double,Double>?> =
+        estado.map { est ->
+            (est as? EstadoUbicacion.Disponible)?.l?.let { it.latitude to it.longitude }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    private val fused = LocationServices.getFusedLocationProviderClient(application)
+    /*──────────────────────────────────────────────────────────────────────────────────────────*/
+
+    /*──────────────────────────  RESTO DE PROPIEDADES SIN CAMBIO  ───────────────────────────*/
     private val _ubicaciones = MutableStateFlow<List<UbicacionLocal>>(emptyList())
     val ubicaciones: StateFlow<List<UbicacionLocal>> = _ubicaciones.asStateFlow()
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
-
-    // 2️⃣ Flujo con la lat/lng actual del dispositivo
-    private val _ubicacionActual = MutableStateFlow<Pair<Double, Double>?>(null)
-    val ubicacionActual: StateFlow<Pair<Double, Double>?> = _ubicacionActual.asStateFlow()
-
-    // Cliente de ubicaciones de Google Play
-    private val fusedLocationClient =
-        LocationServices.getFusedLocationProviderClient(application)
+    /*──────────────────────────────────────────────────────────────────────────────────────────*/
 
     init {
-        // Empieza a observar tu BD/local
+        /** Observa BD local ↔️ search */
         viewModelScope.launch {
-            query
-                .flatMapLatest { texto ->
-                    if (texto.isBlank()) repository.obtenerTodas()
-                    else                   repository.buscar(texto)
-                }
-                .collect { lista ->
-                    _ubicaciones.value = lista
-                }
+            query.flatMapLatest { txt ->
+                if (txt.isBlank()) repository.obtenerTodas()
+                else                repository.buscar(txt)
+            }.collect { _ubicaciones.value = it }
         }
     }
 
-    fun actualizarQuery(nuevoTexto: String) {
-        _query.value = nuevoTexto
+    /*────────────────────────  PERMISO + OBTENCIÓN DEL FIX  ────────────────────────*/
+    fun onPermisoConcedido() {
+        if (_estado.value !is EstadoUbicacion.SinPermiso) return
+        _estado.value = EstadoUbicacion.EsperandoFix
+        pedirPrimeraUbicacion()
     }
 
+    fun onPermisoDenegado() {
+        _estado.value = EstadoUbicacion.SinPermiso
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun pedirPrimeraUbicacion() = viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+        val ctx = getApplication<Application>()
+
+        // 1️⃣ lastLocation
+        val last = fused.lastLocation.await()
+        if (last != null) {
+            _estado.value = EstadoUbicacion.Disponible(last)
+            return@launch
+        }
+
+        // 2️⃣ getCurrentLocation con timeout 5 s
+        val actual = try {
+            withTimeoutOrNull(5.seconds) {
+                suspendCancellableCoroutine<Location?> { cont ->
+                    fused.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                        .addOnSuccessListener { cont.resume(it) }
+                        .addOnFailureListener { cont.resume(null) }
+                }
+            }
+        } catch (_: TimeoutCancellationException) { null }
+
+        if (actual != null) {
+            _estado.value = EstadoUbicacion.Disponible(actual)
+            return@launch
+        }
+
+        // 3️⃣ fallback (centro de España)
+        val fallback = Location("fallback").apply {
+            latitude = 40.4168
+            longitude = -3.7038
+        }
+        _estado.value = EstadoUbicacion.Disponible(fallback)
+
+        Toast.makeText(ctx, "No se pudo obtener tu ubicación real (se usó un valor por defecto)", Toast.LENGTH_LONG).show()
+    }
+    /*───────────────────────────────────────────────────────────────────────────────*/
+
+    /*─────────────  API PÚBLICA “compat” PARA EL CÓDIGO EXISTENTE  ────────────────*/
+    @OptIn(UnstableApi::class) @SuppressLint("MissingPermission")
+    fun iniciarUbicacionActivaDePrueba() {
+        // Mantén este helper si algún flujo tuyo lo sigue llamando -> simplemente delega:
+        onPermisoConcedido()
+    }
+
+    /** Ya no se usa; mantenla vacía para compatibilidad */
+    fun iniciarActualizacionUbicacion() { /* obsoleto */ }
+    /*───────────────────────────────────────────────────────────────────────────────*/
+
+
+    /*────────────────────────────────  CRUD & SYNC (SIN CAMBIO)  ─────────────────────────────*/
+    fun actualizarQuery(nuevoTexto: String) { _query.value = nuevoTexto }
+
+    // ── guardar ────────────────────────────────────────────────────────────────
     @OptIn(UnstableApi::class)
     suspend fun guardarUbicacion(nombre: String, lat: Double, lng: Double, tipo: String): Boolean {
-        val nueva = UbicacionLocal(
-            nombre = nombre,
-            latitud = lat,
-            longitud = lng,
-            tipo = tipo
-        )
+        val nueva = UbicacionLocal(nombre = nombre, latitud = lat, longitud = lng, tipo = tipo)
 
-        val existentes = repository.obtenerTodas().first() // lista actual desde base de datos
-
+        val existentes = repository.obtenerTodas().first()
         val umbral = when (tipo.trim().lowercase()) {
-            "provincia" -> 8000.0   // 8 km
-            "país" -> 100000.0      // 100 km
-            else -> 100.0           // fallback
+            "provincia" -> 8_000.0; "país" -> 100_000.0; else -> 100.0
         }
 
         val existeCercana = existentes.any {
             it.tipo.trim().lowercase() == tipo.trim().lowercase() &&
                     calcularDistanciaEnMetros(it.latitud, it.longitud, lat, lng) <= umbral
         }
-
         return if (!existeCercana) {
-            repository.insertarUbicacion(nueva)
-            true
+            repository.insertarUbicacion(nueva); true
         } else {
-            Log.w("UbicacionViewModel", "❌ Ya existe una ubicación '$tipo' cercana, no se guarda.")
+            Log.w("UbicacionViewModel", "🚫 Ya existe una ubicación '$tipo' cercana.")
             false
         }
     }
 
-
-
     private fun calcularDistanciaEnMetros(
-        lat1: Double, lon1: Double,
-        lat2: Double, lon2: Double
+        lat1: Double, lon1: Double, lat2: Double, lon2: Double
     ): Double {
-        val R = 6371000.0 // Radio de la Tierra en metros
+        val R = 6371000.0
         val dLat = Math.toRadians(lat2 - lat1)
         val dLon = Math.toRadians(lon2 - lon1)
         val a = Math.sin(dLat / 2).pow(2.0) +
@@ -111,117 +175,58 @@ class UbicacionViewModel(
         return R * c
     }
 
-
-    fun eliminarUbicacion(ubicacion: UbicacionLocal) {
-        viewModelScope.launch {
-            repository.eliminarUbicacion(ubicacion)
-        }
+    fun eliminarUbicacion(ubicacion: UbicacionLocal) = viewModelScope.launch {
+        repository.eliminarUbicacion(ubicacion)
     }
-
-    fun actualizarTipo(id: Int, nuevoTipo: String) {
-        viewModelScope.launch {
-            repository.actualizarTipo(id, nuevoTipo)
-        }
+    fun actualizarTipo(id: Int, nuevoTipo: String) = viewModelScope.launch {
+        repository.actualizarTipo(id, nuevoTipo)
     }
-
-    fun actualizarUbicacionCompleta(id: Int, nombre: String, tipo: String) {
-        viewModelScope.launch {
-            repository.actualizarUbicacionCompleta(id, nombre, tipo)
-        }
+    fun actualizarUbicacionCompleta(id: Int, nombre: String, tipo: String) = viewModelScope.launch {
+        repository.actualizarUbicacionCompleta(id, nombre, tipo)
     }
 
     suspend fun guardarYRetornarId(ubicacion: UbicacionLocal): Long =
         repository.insertarUbicacionYRetornarId(ubicacion)
-    // ———————————————————————————————————————————————————————————————
 
-    /**
-     * 3️⃣ Llama a este método (sin pasarle nada) desde tu Composable
-     *    para que intente obtener la última ubicación conocida.
-     */
-    fun iniciarActualizacionUbicacion() {
-        // Si ya tenemos un valor, no lo pedimos de nuevo
-        if (_ubicacionActual.value != null) return
+    fun eliminarTodasUbicaciones() = viewModelScope.launch { repository.eliminarTodas() }
 
-        // Verificamos permiso FINE_LOCATION
-        val ctx = getApplication<Application>()
-        val permisoOk = ContextCompat.checkSelfPermission(
-            ctx,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+    // ── sync backend ───────────────────────────────────────────────────────────
+    fun sincronizarConApi(context: Context) = viewModelScope.launch {
+        val usuarioId = usuarioRepository.obtenerUsuario()?.id
+        val token = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+            .getString("jwt_token", null)
 
-        if (!permisoOk) {
-            // Aquí podrías exponer otro StateFlow<Boolean> para que tu UI solicite el permiso
-            return
-        }
-
-        viewModelScope.launch {
+        if (usuarioId != null && token != null) {
             try {
-                val loc = fusedLocationClient.lastLocation.await()
-                loc?.let {
-                    _ubicacionActual.value = it.latitude to it.longitude
+                repository.sincronizarUbicacionesConBackend(usuarioId, token)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "📡 Ubicaciones sincronizadas", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                // Maneja/loguea el error si quieres
-            }
-        }
-    }
-
-
-    fun eliminarTodasUbicaciones() {
-        viewModelScope.launch {
-            repository.eliminarTodas()
-        }
-    }
-
-///----------------------------- funciones BACKEND -----------------------------
-
-
-    fun sincronizarConApi(context: Context) {
-        viewModelScope.launch {
-            val usuarioId = usuarioRepository.obtenerUsuario()?.id
-            val token = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-                .getString("jwt_token", null)
-
-            if (usuarioId != null && token != null) {
-                try {
-                    repository.sincronizarUbicacionesConBackend(usuarioId, token)
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "📡 Ubicaciones sincronizadas", Toast.LENGTH_SHORT).show()
-                    }
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "❌ Falló sincronización: ${e.message}", Toast.LENGTH_LONG).show()
-                    }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "❌ Falló sincronización: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
 
-    @OptIn(UnstableApi::class)
-    fun descargarUbicaciones(context: Context) {
-        viewModelScope.launch {
-            val usuarioId = usuarioRepository.obtenerUsuario()?.id
-            val token = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-                .getString("jwt_token", null)
+    fun descargarUbicaciones(context: Context) = viewModelScope.launch {
+        val usuarioId = usuarioRepository.obtenerUsuario()?.id
+        val token = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+            .getString("jwt_token", null)
 
-            if (usuarioId != null && token != null) {
-                try {
-                    repository.descargarUbicacionesDesdeBackend(usuarioId, token)
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "⬇️ Ubicaciones descargadas", Toast.LENGTH_SHORT).show()
-                        Log.d("UbicacionViewModel", "⬇️ Ubicaciones descargadas correctamente")
-                    }
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "❌ Falló descarga: ${e.message}", Toast.LENGTH_LONG).show()
-                        Log.d("UbicacionViewModel", "❌ Error al descargar ubicaciones: ${e.message}", e)
-                    }
+        if (usuarioId != null && token != null) {
+            try {
+                repository.descargarUbicacionesDesdeBackend(usuarioId, token)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "⬇️ Ubicaciones descargadas", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "❌ Falló descarga: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
-
-
-
-
+    /*─────────────────────────────────────────────────────────────────────────────*/
 }

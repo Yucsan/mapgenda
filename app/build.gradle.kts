@@ -117,6 +117,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.4.0")
 
     // Google Maps y ubicación
+    //noinspection GradleCompatible
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
 
@@ -147,6 +148,8 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:20.7.0")
 
     implementation("com.cloudinary:cloudinary-android:2.3.1")
+
+
 
 //(Kotlin DSL)
 
