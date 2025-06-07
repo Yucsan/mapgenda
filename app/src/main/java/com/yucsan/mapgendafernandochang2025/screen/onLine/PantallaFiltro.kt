@@ -34,7 +34,7 @@ import com.yucsan.mapgendafernandochang2025.componentes.Ruta
 import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
 import com.google.android.gms.maps.model.LatLng
-
+import com.yucsan.mapgendafernandochang2025.entidad.UbicacionLocal
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @SuppressLint("StateFlowValueCalledInComposition")
@@ -53,12 +53,14 @@ fun PantallaFiltro(
     var distanciaFiltro by remember { mutableStateOf(10000f) }
     var iniciarCarga by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val conteoPorSubcategoria by viewModelLugar.conteoPorSubcategoria.collectAsState()
+    val conteoPorSubcategoria by viewModelLugar.conteoPorSubcategoriaFiltrado.collectAsState()
     var visible by remember { mutableStateOf(false) }
     val categoriasActivas = remember { mutableStateListOf<String>() }
     val categoriasActivasOrdenadas = categoriasPorGrupo.keys.filter { categoriasActivas.contains(it) }
     val ubicacionesGuardadas by ubicacionViewModel.ubicaciones.collectAsState()
     var expandirMenu by remember { mutableStateOf(false) }
+    val ubicacionSeleccionada by viewModelLugar.ubicacionSeleccionada.collectAsState(initial = null)
+    val categoriasExpandibles by viewModelLugar.categoriasExpandibles.collectAsState()
 
     // Al cambiar los filtros globales, actualizamos el estado local
     LaunchedEffect(seleccionadasViewModel) {
@@ -66,13 +68,24 @@ fun PantallaFiltro(
         seleccionadas.addAll(seleccionadasViewModel)
 
         categoriasActivas.clear()
+        val nuevoMapa = categoriasExpandibles.toMutableMap()
+        
         seleccionadasViewModel.forEach { subcat ->
             categoriasPorGrupo.entries.find { it.value.contains(subcat) }?.key?.let { categoria ->
                 if (!categoriasActivas.contains(categoria)) {
                     categoriasActivas.add(categoria)
                 }
+                // Si hay una subcategoría seleccionada, expandimos su categoría padre
+                nuevoMapa[categoria] = true
             }
         }
+        
+        viewModelLugar.actualizarCategoriasExpandibles(nuevoMapa)
+    }
+
+    // Actualizar categorías cuando cambia la ubicación
+    LaunchedEffect(ubicacionSeleccionada) {
+        viewModelLugar.cargarConteoSubcategorias()
     }
 
     //Acciones iniciales al entrar a la pantalla
@@ -142,7 +155,7 @@ fun PantallaFiltro(
                             shape = MaterialTheme.shapes.small,
                             border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
                         ) {
-                            Text("Seleccionar ubicación")
+                            Text(ubicacionSeleccionada?.let { "${it.nombre} (${it.tipo})" } ?: "Seleccionar ubicación")
                         }
 
                         DropdownMenu(
@@ -159,7 +172,7 @@ fun PantallaFiltro(
                                     DropdownMenuItem(
                                         text = { Text("${ubi.nombre} (${ubi.tipo})") },
                                         onClick = {
-                                            viewModelLugar.actualizarUbicacion(ubi.latitud, ubi.longitud)
+                                            viewModelLugar.actualizarUbicacion(ubi.latitud, ubi.longitud, ubi)
                                             expandirMenu = false
                                         }
                                     )
@@ -172,105 +185,110 @@ fun PantallaFiltro(
 
             // Sección de categorías principales
             item {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp)
-                ) {
-                    categoriasPorGrupo.entries.forEach { (categoria, _) ->
-                        val color = coloresPorCategoriaPadre[categoria]
-                        FilterChip(
-                            selected = categoriasActivas.contains(categoria),
-                            onClick = {
-                                if (categoriasActivas.contains(categoria)) {
-                                    categoriasActivas.remove(categoria)
-                                    categoriasPorGrupo[categoria]?.forEach {
-                                        seleccionadas.remove(it)
-                                    }
-                                } else {
-                                    categoriasActivas.add(categoria)
-                                }
-                            },
-                            label = {
-                                Text(
-                                    categoria
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = color
-                                    ?: Color.Gray, // fondo cuando está seleccionado
-                                containerColor = Color.Transparent, // fondo cuando NO está seleccionado
-                                selectedLabelColor = Color.White,
-                                labelColor = color ?: MaterialTheme.colorScheme.primary, // color del texto cuando no está seleccionado
-                                selectedTrailingIconColor = Color.White,
-                                disabledContainerColor = Color.Transparent,
-                                disabledLabelColor = color?.copy(alpha = 0.4f)
-                                    ?: Color.LightGray
-                            ),
-                            border = BorderStroke(1.dp, color ?: Color.Gray)
-                        )
-                    }
+                val categoriasConDatos = categoriasPorGrupo.entries.filter { (_, subcategorias) ->
+                    subcategorias.any { subcat -> (conteoPorSubcategoria[subcat] ?: 0) > 0 }
                 }
-            }
 
-            // Sección de subcategorías (SIMPLIFICADA)
-            item {
-                Spacer(Modifier.height(8.dp))
+                if (categoriasConDatos.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
 
-                categoriasActivasOrdenadas.forEach { categoria ->
-                    val color = coloresPorCategoriaPadre[categoria]
-
-                    // Título de la categoría
-                    Text(
-                        text = categoria,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
-
-                    // Chips de subcategorías
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp)
+                            .padding(start = 12.dp)
                     ) {
-                        categoriasPorGrupo[categoria]?.forEach { subcategoria ->
-                            if ((conteoPorSubcategoria[subcategoria] ?: 0) > 0) {
-                                FilterChip(
-                                    selected = seleccionadas.contains(subcategoria),
-                                    onClick = {
-                                        if (seleccionadas.contains(subcategoria)) {
-                                            seleccionadas.remove(subcategoria)
-                                        } else {
-                                            seleccionadas.add(subcategoria)
-                                        }
-                                    },
-                                    label = {
-                                        Text(
-                                            "$subcategoria (${conteoPorSubcategoria[subcategoria] ?: 0})",
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = color ?: Color.Gray,
-                                        selectedLabelColor = Color.White,
-                                        containerColor = color?.copy(alpha = 0.2f)
-                                            ?: Color.LightGray
-                                    ),
-                                    border = BorderStroke(1.dp, color ?: Color.Gray)
-                                )
-                            }
+                        categoriasConDatos.forEach { (categoria, _) ->
+                            val color = coloresPorCategoriaPadre[categoria]
+                            FilterChip(
+                                selected = categoriasExpandibles[categoria] == true,
+                                onClick = {
+                                    val estabaExpandida = categoriasExpandibles[categoria] ?: false
+                                    val nuevoEstado = !estabaExpandida
+                                    val nuevoMapa = categoriasExpandibles.toMutableMap()
+                                    nuevoMapa[categoria] = nuevoEstado
+                                    viewModelLugar.actualizarCategoriasExpandibles(nuevoMapa)
+                                },
+                                enabled = ubicacionSeleccionada != null,
+                                label = { Text(categoria) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = color ?: Color.Gray,
+                                    containerColor = Color.Transparent,
+                                    selectedLabelColor = Color.White,
+                                    labelColor = color ?: MaterialTheme.colorScheme.primary,
+                                    disabledLabelColor = color?.copy(alpha = 0.4f) ?: Color.LightGray
+                                ),
+                                border = BorderStroke(1.dp, color ?: Color.Gray)
+                            )
                         }
                     }
-
-                    Spacer(Modifier.height(8.dp))
                 }
             }
 
+            // Sección de subcategorías
+            item {
+                val categoriasConDatos = categoriasPorGrupo.entries.filter { (_, subcategorias) ->
+                    subcategorias.any { subcat -> (conteoPorSubcategoria[subcat] ?: 0) > 0 }
+                }
+
+                if (categoriasConDatos.isNotEmpty()) {
+                    categoriasConDatos.forEach { (categoria, subcategorias) ->
+                        val color = coloresPorCategoriaPadre[categoria]
+                        val subcategoriasConDatos = subcategorias.filter { (conteoPorSubcategoria[it] ?: 0) > 0 }
+
+                        val expandida = categoriasExpandibles[categoria] == true
+                        if (expandida && subcategoriasConDatos.isNotEmpty()) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Spacer(Modifier.height(8.dp))
+
+                                Text(
+                                    text = categoria,
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = color ?: MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)
+                                )
+
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 12.dp)
+                                ) {
+                                    subcategoriasConDatos.forEach { subcategoria ->
+                                        FilterChip(
+                                            selected = seleccionadas.contains(subcategoria),
+                                            onClick = {
+                                                if (seleccionadas.contains(subcategoria)) {
+                                                    seleccionadas.remove(subcategoria)
+                                                    viewModelLugar.actualizarFiltrosActivos(seleccionadas.toSet())
+                                                } else {
+                                                    seleccionadas.add(subcategoria)
+                                                    viewModelLugar.actualizarFiltrosActivos(seleccionadas.toSet())
+                                                }
+                                            },
+                                            enabled = ubicacionSeleccionada != null,
+                                            label = {
+                                                Text(
+                                                    "$subcategoria (${conteoPorSubcategoria[subcategoria] ?: 0})",
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = color ?: Color.Gray,
+                                                selectedLabelColor = Color.White,
+                                                containerColor = color?.copy(alpha = 0.2f) ?: Color.LightGray
+                                            ),
+                                            border = BorderStroke(1.dp, color ?: Color.Gray)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             // Botón para aplicar filtro
             item {
@@ -298,7 +316,6 @@ fun PantallaFiltro(
                     Text("Buscar lugares")
                 }
             }
-
 
             // Botón para volver a pedir permiso si no fue concedido
             if (!permisoConcedido.value) {
@@ -355,7 +372,6 @@ fun PantallaFiltro(
         }
     }
 }
-
 
 // Función auxiliar para manejar el permiso de ubicación
 @androidx.annotation.OptIn(UnstableApi::class)

@@ -34,6 +34,7 @@ import com.yucsan.mapgendafernandochang2025.util.CategoriaMapper
 import com.yucsan.mapgendafernandochang2025.util.categoriasPersonalizadas
 import kotlinx.coroutines.withContext
 import com.yucsan.mapgendafernandochang2025.util.haversineDistance
+import com.yucsan.mapgendafernandochang2025.entidad.UbicacionLocal
 
 
 
@@ -110,6 +111,9 @@ class LugarViewModel(
     private val _conteoPorSubcategoria = MutableStateFlow<Map<String, Int>>(emptyMap())
     val conteoPorSubcategoria: StateFlow<Map<String, Int>> = _conteoPorSubcategoria
 
+    private val _conteoPorSubcategoriaFiltrado = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val conteoPorSubcategoriaFiltrado: StateFlow<Map<String, Int>> = _conteoPorSubcategoriaFiltrado
+
     private val _filtrosActivos = MutableStateFlow<List<String>>(emptyList())
     val filtrosActivos: StateFlow<List<String>> = _filtrosActivos
 
@@ -118,7 +122,12 @@ class LugarViewModel(
     private val _eventoDescargaPersonalizada = MutableStateFlow(false)
     val eventoDescargaPersonalizada: StateFlow<Boolean> = _eventoDescargaPersonalizada
 
+    // Nueva propiedad para la ubicación seleccionada
+    private val _ubicacionSeleccionada = MutableStateFlow<UbicacionLocal?>(null)
+    val ubicacionSeleccionada: StateFlow<UbicacionLocal?> = _ubicacionSeleccionada.asStateFlow()
 
+    private val _categoriasExpandibles = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val categoriasExpandibles: StateFlow<Map<String, Boolean>> = _categoriasExpandibles
 
     fun actualizarFiltrosActivos(subcategorias: Set<String>) {
         _filtrosActivos.value = subcategorias.toList()
@@ -127,6 +136,16 @@ class LugarViewModel(
     fun cargarConteoSubcategorias() {
         viewModelScope.launch {
             _conteoPorSubcategoria.value = repository.contarLugaresPorSubcategoria()
+            
+            // También actualizar el conteo filtrado si hay ubicación
+            _ubicacion.value?.let { (lat, lng) ->
+                val conteo = repository.contarLugaresPorSubcategoriaFiltrando(
+                    latitud = lat,
+                    longitud = lng,
+                    radio = _radio.value
+                )
+                _conteoPorSubcategoriaFiltrado.value = conteo
+            }
         }
     }
 
@@ -263,9 +282,19 @@ class LugarViewModel(
     }
 
 
-    fun actualizarUbicacion(lat: Double, lng: Double) {
-
-        _ubicacion.value = lat to lng
+    fun actualizarUbicacion(latitud: Double, longitud: Double, ubicacion: UbicacionLocal? = null) {
+        _ubicacion.value = latitud to longitud
+        _ubicacionSeleccionada.value = ubicacion
+        
+        // Actualizar el conteo filtrado por ubicación
+        viewModelScope.launch {
+            val conteo = repository.contarLugaresPorSubcategoriaFiltrando(
+                latitud = latitud,
+                longitud = longitud,
+                radio = _radio.value
+            )
+            _conteoPorSubcategoriaFiltrado.value = conteo
+        }
     }
 
     fun actualizarRadio(nuevoRadio: Float) {
@@ -1109,6 +1138,8 @@ class LugarViewModel(
         _centrosPorZona.value = centrosZona
     }
 
-
+    fun actualizarCategoriasExpandibles(categorias: Map<String, Boolean>) {
+        _categoriasExpandibles.value = categorias
+    }
 
 }
