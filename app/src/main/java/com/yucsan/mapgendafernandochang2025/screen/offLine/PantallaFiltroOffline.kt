@@ -74,6 +74,7 @@ fun PantallaFiltroOffline(
     val switchesActivos = remember { mutableStateMapOf<String, Boolean>() }
     val ubicacion by lugarOfflineViewModel.ubicacion.collectAsState()
     val ubicacionesGuardadas by ubicacionViewModel.ubicaciones.collectAsState()
+    val categoriasExpandibles = remember { mutableStateMapOf<String, Boolean>() }
 
     var expandirMenu by remember { mutableStateOf(false) }
 
@@ -92,6 +93,7 @@ fun PantallaFiltroOffline(
                 if (!categoriasActivas.contains(categoria)) {
                     categoriasActivas.add(categoria)
                 }
+                categoriasExpandibles[categoria] = true
             }
         }
     }
@@ -115,7 +117,6 @@ fun PantallaFiltroOffline(
     val exitAnimation = remember {
         slideOutVertically(targetOffsetY = { fullHeight -> fullHeight }) + fadeOut()
     }
-    val categoriasExpandibles = remember { mutableStateMapOf<String, Boolean>() }
 
 
     AnimatedVisibility(visible = visible, enter = enterAnimation, exit = exitAnimation) {
@@ -310,8 +311,10 @@ fun PantallaFiltroOffline(
                                                     onClick = {
                                                         if (seleccionadas.contains(subcategoria)) {
                                                             seleccionadas.remove(subcategoria)
+                                                            lugarOfflineViewModel.actualizarFiltrosActivos(seleccionadas.toSet())
                                                         } else {
                                                             seleccionadas.add(subcategoria)
+                                                            lugarOfflineViewModel.actualizarFiltrosActivos(seleccionadas.toSet())
                                                         }
                                                     },
                                                     enabled = ubicacion != null,
