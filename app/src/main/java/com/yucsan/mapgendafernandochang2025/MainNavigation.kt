@@ -70,6 +70,7 @@ fun MainNavigation(
         composable(Ruta.Filtro.ruta) {
             PantallaFiltro(
                 viewModelLugar = lugarViewModel,
+                ubicacionViewModel = ubicacionViewModel,
                 navController = navController
             )
         }

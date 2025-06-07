@@ -32,6 +32,8 @@ import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import com.yucsan.mapgendafernandochang2025.componentes.Ruta
 import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
+import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
+import com.google.android.gms.maps.model.LatLng
 
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -39,25 +41,24 @@ import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PantallaFiltro(
-    viewModelLugar: LugarViewModel = viewModel(), // ViewModel donde se guarda el estado global
+    viewModelLugar: LugarViewModel = viewModel(),
+    ubicacionViewModel: UbicacionViewModel,
     navController: NavController
 ) {
     val context = LocalContext.current
-    val cargando by viewModelLugar.cargando.collectAsState() // 🔁 Estado de carga de lugares
-    val seleccionadasViewModel by viewModelLugar.filtrosActivos.collectAsState() //SUBCATEGORÍAS seleccionadas globalmente (guardadas en el ViewModel)
-    val seleccionadas =
-        remember { mutableStateListOf<String>() } // SUBCATEGORÍAS seleccionadas localmente (editable)
-    val permisoConcedido = remember { mutableStateOf(false) } // Estado del permiso de ubicación
-    var distanciaFiltro by remember { mutableStateOf(10000f) } // Distancia máxima para filtrar lugares
-    var iniciarCarga by remember { mutableStateOf(false) } // Controla si se debe iniciar la carga y navegar
+    val cargando by viewModelLugar.cargando.collectAsState()
+    val seleccionadasViewModel by viewModelLugar.filtrosActivos.collectAsState()
+    val seleccionadas = remember { mutableStateListOf<String>() }
+    val permisoConcedido = remember { mutableStateOf(false) }
+    var distanciaFiltro by remember { mutableStateOf(10000f) }
+    var iniciarCarga by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val conteoPorSubcategoria by viewModelLugar.conteoPorSubcategoria.collectAsState() // Cantidad de lugares por subcategoría
-    var visible by remember { mutableStateOf(false) } //  Controla la visibilidad animada de la pantalla
-    val categoriasActivas =
-        remember { mutableStateListOf<String>() } // CATEGORÍAS PADRE activas localmente
-    val categoriasActivasOrdenadas =
-        categoriasPorGrupo.keys.filter { categoriasActivas.contains(it) }
-
+    val conteoPorSubcategoria by viewModelLugar.conteoPorSubcategoria.collectAsState()
+    var visible by remember { mutableStateOf(false) }
+    val categoriasActivas = remember { mutableStateListOf<String>() }
+    val categoriasActivasOrdenadas = categoriasPorGrupo.keys.filter { categoriasActivas.contains(it) }
+    val ubicacionesGuardadas by ubicacionViewModel.ubicaciones.collectAsState()
+    var expandirMenu by remember { mutableStateOf(false) }
 
     // Al cambiar los filtros globales, actualizamos el estado local
     LaunchedEffect(seleccionadasViewModel) {
@@ -65,7 +66,6 @@ fun PantallaFiltro(
         seleccionadas.addAll(seleccionadasViewModel)
 
         categoriasActivas.clear()
-        // Inferimos las CATEGORÍAS PADRE activas en base a las subcategorías
         seleccionadasViewModel.forEach { subcat ->
             categoriasPorGrupo.entries.find { it.value.contains(subcat) }?.key?.let { categoria ->
                 if (!categoriasActivas.contains(categoria)) {
@@ -83,10 +83,10 @@ fun PantallaFiltro(
         visible = true
     }
 
-
     Box(
         modifier = Modifier
-            .fillMaxSize().background(MaterialTheme.colorScheme.background),
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.TopCenter
     ) {
         LazyColumn(
@@ -109,14 +109,64 @@ fun PantallaFiltro(
                             tint = MaterialTheme.colorScheme.secondary
                         )
                     }
-                    Spacer(modifier = Modifier.width(8.dp)) // Espacio entre ícono y texto
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     Text(
                         text = "Filtro Mapa OnLine",
-                        color =  MaterialTheme.colorScheme.secondary ,
+                        color = MaterialTheme.colorScheme.secondary,
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-
                     )
+                }
+            }
+
+            // Selector de ubicación
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(3.dp)
+                ) {
+                    Text(
+                        text = "Selecciona una ubicación guardada:",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(vertical = 5.dp)
+                    )
+
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { expandirMenu = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.small,
+                            border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("Seleccionar ubicación")
+                        }
+
+                        DropdownMenu(
+                            expanded = expandirMenu,
+                            onDismissRequest = { expandirMenu = false }
+                        ) {
+                            if (ubicacionesGuardadas.isEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("No hay ubicaciones guardadas") },
+                                    onClick = {}
+                                )
+                            } else {
+                                ubicacionesGuardadas.forEach { ubi ->
+                                    DropdownMenuItem(
+                                        text = { Text("${ubi.nombre} (${ubi.tipo})") },
+                                        onClick = {
+                                            viewModelLugar.actualizarUbicacion(ubi.latitud, ubi.longitud)
+                                            expandirMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -230,9 +280,8 @@ fun PantallaFiltro(
                         if (seleccionadas.isNotEmpty()) {
                             Log.d("Filtro", "🔍 Subcategorías seleccionadas: $seleccionadas")
 
-                            viewModelLugar.actualizarCategorias(seleccionadas.toSet()) // ← ["park", ...]
+                            viewModelLugar.actualizarCategorias(seleccionadas.toSet())
                             viewModelLugar.actualizarFiltrosActivos(seleccionadas.toSet())
-
                             viewModelLugar.actualizarRadio(distanciaFiltro)
 
                             iniciarCarga = true
@@ -283,8 +332,6 @@ fun PantallaFiltro(
         }
     }
 
-
-    // Navegación al mapa si se concede el permiso y se seleccionan categorías
     // Navegación al mapa si se concede el permiso y se seleccionan categorías
     LaunchedEffect(viewModelLugar.ubicacion.value, iniciarCarga) {
         Log.d(
@@ -294,7 +341,6 @@ fun PantallaFiltro(
 
         if (iniciarCarga &&
             viewModelLugar.ubicacion.value != null &&
-            permisoConcedido.value &&
             !cargando
         ) {
             Log.d("DEBUG_NAV", "✅ Condiciones cumplidas, navegando a mapa")
@@ -303,14 +349,11 @@ fun PantallaFiltro(
                 popUpTo(Ruta.Filtro.ruta) { inclusive = true }
             }
 
-
             iniciarCarga = false
         } else {
             Log.d("DEBUG_NAV", "⏳ Aún no se cumplen condiciones para navegar")
         }
     }
-
-
 }
 
 
