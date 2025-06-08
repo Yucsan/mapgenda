@@ -223,9 +223,15 @@ fun PantallaListadoLugares(
             modifier = Modifier.fillMaxSize()
         ) {
             agrupados.forEach { (subcat, lista) ->
-                val lugaresFiltradosPorTexto = lista.filter {
-                    it.nombre.contains(buscador.value, ignoreCase = true) ||
-                            (it.direccion?.contains(buscador.value, ignoreCase = true) == true)
+
+                val queryWords = buscador.value.trim().split("\\s+".toRegex()).filter { it.isNotBlank() }
+
+                val lugaresFiltradosPorTexto = lista.filter { lugar ->
+                    val textoCompleto = "${lugar.nombre} ${lugar.direccion}".lowercase()
+
+                    queryWords.all { palabra ->
+                        textoCompleto.contains(palabra.lowercase())
+                    }
                 }
 
                 if (lugaresFiltradosPorTexto.isNotEmpty()) {
