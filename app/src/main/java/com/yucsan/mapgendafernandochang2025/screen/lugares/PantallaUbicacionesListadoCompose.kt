@@ -15,15 +15,49 @@ import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
 import com.yucsan.mapgendafernandochang2025.entidad.UbicacionLocal
 import com.yucsan.mapgendafernandochang2025.viewmodel.LugarRutaOfflineViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
-import android.util.Log  // Asegúrate de tener este import arriba
+import android.util.Log
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import com.yucsan.mapgendafernandochang2025.screens.mapa.alertas.DetalleLugarDialog
+import com.yucsan.mapgendafernandochang2025.util.Secrets
+import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
+import com.yucsan.mapgendafernandochang2025.viewmodel.NavegacionViewModel
+import com.yucsan.mapgendafernandochang2025.util.state.NetworkMonitor
+
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.navigation.NavController
+
 
 @SuppressLint("SuspiciousIndentation")
 @OptIn(UnstableApi::class)
 @Composable
-fun PantallaUbicacionesListadoCompose(
+// ********************************************  LISTADO DE LUGARES POR UBICACIONES  ********************************************
+fun PantallaListadoLugares(
     lugarRutaOfflineViewModel: LugarRutaOfflineViewModel,
-    ubicacionViewModel: UbicacionViewModel
+    ubicacionViewModel: UbicacionViewModel,
+    lugarViewModel: LugarViewModel,
+    navegacionViewModel: NavegacionViewModel,
+    networkMonitor: NetworkMonitor,
+    navController: NavController
 ) {
     // 1️⃣ Estado de ubicación seleccionada
     val ubicacion by lugarRutaOfflineViewModel.ubicacion.collectAsState(initial = null)
@@ -32,20 +66,46 @@ fun PantallaUbicacionesListadoCompose(
     //    (asumimos que aquí ya has llenado lugarRutaOfflineViewModel.filtrosActivos
     //     vía los chips, igual que en tu PantallaFiltroOffline)
     val subcatsSeleccionadas by lugarRutaOfflineViewModel.filtrosActivos.collectAsState()
+    val ubicaciones by ubicacionViewModel.ubicaciones.collectAsState(initial = emptyList())
+    val conteoPorSubcategoria by lugarRutaOfflineViewModel.conteoPorSubcategoriaFiltrado.collectAsState()
+
+
+    // 3️⃣ Este es el flujo **filtrado** de lugares que devuelve aplicarFiltroManualConParametros
+    val lugaresFiltrados by lugarRutaOfflineViewModel.lugaresOffline.collectAsState(initial = emptyList())
+
+    LaunchedEffect(Unit) {
+        Log.d("DEBUG_LISTADO", "✅ Ubicación actual: $ubicacion")
+    }
+
+
+    // ——— Agrupar por subcategoría y mostrar ———
+    val agrupados = remember(lugaresFiltrados) {
+        lugaresFiltrados.groupBy { it.subcategoria ?: "Sin categoría" }
+    }
+
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
+    val subcategoriasDisponibles = agrupados.keys.toList()
+
+    val buscador = remember { mutableStateOf("") }
+    val categoriaSeleccionada = remember { mutableStateOf<String?>(null) }
+
+    val indicesDeCategoria = remember(agrupados) {
+        val mapa = mutableMapOf<String, Int>()
+        var index = 0
+        agrupados.forEach { (subcat, lista) ->
+            mapa[subcat] = index
+            index += 1 + lista.size // 1 por el título + lugares
+        }
+        mapa
+    }
 
     LaunchedEffect(subcatsSeleccionadas) {
         Log.d("DEBUG_UI", "🧪 Subcategorías seleccionadas: $subcatsSeleccionadas")
     }
 
 
-    // 3️⃣ Este es el flujo **filtrado** de lugares que devuelve aplicarFiltroManualConParametros
-    val lugaresFiltrados by lugarRutaOfflineViewModel.lugaresOffline.collectAsState(initial = emptyList())
-
-
-
-            LaunchedEffect(Unit) {
-                Log.d("DEBUG_LISTADO", "✅ Ubicación actual: $ubicacion")
-            }
 
     LaunchedEffect(subcatsSeleccionadas) {
         Log.d("DEBUG_LISTADO", "🏷️ Subcategorías seleccionadas: $subcatsSeleccionadas")
@@ -64,12 +124,35 @@ fun PantallaUbicacionesListadoCompose(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // ——— Selector de ubicación ———
-        Text("Selecciona una ubicación guardada:", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(8.dp))
 
-        val ubicaciones by ubicacionViewModel.ubicaciones.collectAsState(initial = emptyList())
-        val conteoPorSubcategoria by lugarRutaOfflineViewModel.conteoPorSubcategoriaFiltrado.collectAsState()
+        // ——— Encabezado con flecha, fecha y título ———
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = {  navController.popBackStack() },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+            }
+
+
+
+            Text(
+                text = "Listado de lugares",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // ——— Selector de ubicación ———
+        Text("Selecciona una ubicación guardada:",
+            style = MaterialTheme.typography.titleMedium)
+
+
 
         DropdownMenuUbicaciones(
             ubicaciones = ubicaciones,
@@ -77,43 +160,169 @@ fun PantallaUbicacionesListadoCompose(
             conteoPorSubcategoria = conteoPorSubcategoria,
             lugarRutaOfflineViewModel = lugarRutaOfflineViewModel
         )
-        Spacer(Modifier.height(16.dp))
 
-        // ——— Agrupar por subcategoría y mostrar ———
-        val agrupados = remember(lugaresFiltrados) {
-            lugaresFiltrados.groupBy { it.subcategoria ?: "Sin categoría" }
-        }
 
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            agrupados.forEach { (subcat, lista) ->
-                if (lista.isNotEmpty()) {
-                    item {
-                        Text(
-                            text     = "$subcat (${lista.size})",
-                            style    = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                        )
+        // *****************************************************  Filtros *****************************************************
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    shape = MaterialTheme.shapes.medium
+                )
+                .padding(12.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = buscador.value,
+                    onValueChange = { buscador.value = it },
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    label = { Text("Buscar lugar...") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                var expandedCat by remember { mutableStateOf(false) }
+
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(
+                        onClick = { expandedCat = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Ir a categoría...")
                     }
-                    items(lista) { lugar ->
-                        ListadoLugarItem(lugar)
+                    DropdownMenu(
+                        expanded = expandedCat,
+                        onDismissRequest = { expandedCat = false }
+                    ) {
+                        subcategoriasDisponibles.forEach { subcat ->
+                            DropdownMenuItem(
+                                text = { Text(subcat) },
+                                onClick = {
+                                    expandedCat = false
+                                    categoriaSeleccionada.value = subcat
+                                    val index = indicesDeCategoria[subcat] ?: 0
+                                    scope.launch {
+                                        listState.animateScrollToItem(index)
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
+
+
+        // *************************************************    LISTA DE LUGARES    *************************************************
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            agrupados.forEach { (subcat, lista) ->
+                val lugaresFiltradosPorTexto = lista.filter {
+                    it.nombre.contains(buscador.value, ignoreCase = true) ||
+                            (it.direccion?.contains(buscador.value, ignoreCase = true) == true)
+                }
+
+                if (lugaresFiltradosPorTexto.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "$subcat (${lugaresFiltradosPorTexto.size})",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    items(lugaresFiltradosPorTexto) { lugar ->
+                        ListadoLugarItem(
+                            lugar = lugar,
+                            lugarViewModel = lugarViewModel,
+                            navegacionViewModel = navegacionViewModel,
+                            networkMonitor = networkMonitor
+                        )
+                    }
+                }
+            }
+        }
+
     }
 }
 
 @Composable
-fun ListadoLugarItem(lugar: LugarLocal) {
-    Column(
+fun ListadoLugarItem(
+    lugar: LugarLocal,
+    lugarViewModel: LugarViewModel,
+    navegacionViewModel: NavegacionViewModel,
+    networkMonitor: NetworkMonitor
+) {
+    val context = LocalContext.current
+    var mostrarDialogo by remember { mutableStateOf(false) }
+    val hayConexion by networkMonitor.isConnected.collectAsState()
+    val ubicacionActual by navegacionViewModel.ubicacionActual.collectAsState()
+
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(vertical = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Text(text = lugar.nombre, style = MaterialTheme.typography.bodyLarge)
-        Text(text = lugar.direccion ?: "", style = MaterialTheme.typography.bodySmall)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 🧾 Información (85%)
+            Column(
+                modifier = Modifier
+                    .weight(0.85f)
+            ) {
+                Text(
+                    text = lugar.nombre,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = lugar.direccion ?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // ✏️ Botón de edición (15%)
+            Box(
+                modifier = Modifier
+                    .weight(0.15f),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                IconButton(onClick = { mostrarDialogo = true }) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Editar lugar"
+                    )
+                }
+            }
+        }
+    }
+
+    if (mostrarDialogo) {
+        DetalleLugarDialog(
+            lugar = lugar,
+            apiKey = Secrets.GOOGLE_MAPS_API_KEY,
+            viewModelLugar = lugarViewModel,
+            navegacionViewModel = navegacionViewModel,
+            onDismiss = { mostrarDialogo = false },
+            ubicacionActual = ubicacionActual,
+            hayConexion = hayConexion
+        )
     }
 }
 
@@ -132,7 +341,11 @@ fun DropdownMenuUbicaciones(
     }?.let { "📍 ${it.nombre} (${it.tipo})" } ?: "Elegir ubicación"
 
     Box {
-        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.small
+        ) {
             Text(textoActual)
         }
 

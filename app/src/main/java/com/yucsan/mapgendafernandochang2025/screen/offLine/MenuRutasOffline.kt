@@ -76,7 +76,7 @@ fun MenuRutaOffline(
             texto = "🗺️ Ver Lugares por Zonas"
         ) {
             lugarViewModel.agruparLugaresPorZona()
-            navController.navigate("explora")
+            navController.navigate("listalugares")
         }
     }
 }

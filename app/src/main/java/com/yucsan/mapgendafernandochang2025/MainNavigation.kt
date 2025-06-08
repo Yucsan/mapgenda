@@ -19,8 +19,9 @@ import com.yucsan.mapgendafernandochang2025.screen.descargas.PantallaFiltroDesca
 import com.yucsan.mapgendafernandochang2025.screen.descargas.PantallaTabsDescarga
 import com.yucsan.mapgendafernandochang2025.screen.perfil.PantallaPerfil
 import com.yucsan.mapgendafernandochang2025.screen.iniciarMapa
-import com.yucsan.mapgendafernandochang2025.screen.lugares.PantallaExplorarTabsCompose
-import com.yucsan.mapgendafernandochang2025.screen.lugares.PantallaZonasCompose
+
+import com.yucsan.mapgendafernandochang2025.screen.lugares.PantallaListadoLugares
+
 import com.yucsan.mapgendafernandochang2025.screen.offLine.MenuRutaOffline
 import com.yucsan.mapgendafernandochang2025.screen.offLine.PantallaMapaOffline
 import com.yucsan.mapgendafernandochang2025.screen.offLine.PantallaMapaUbicacion
@@ -191,13 +192,17 @@ fun MainNavigation(
             )
         }
 
-        composable("explora") {
-            PantallaExplorarTabsCompose(
-                navController = navController,
-                lugarViewModel = lugarViewModel,
+
+        composable ( "listalugares" ) {
+            PantallaListadoLugares(
+                lugarRutaOfflineViewModel = lugareOfflineViewModel,
                 ubicacionViewModel = ubicacionViewModel,
-                lugarRutaOfflineViewModel = lugareOfflineViewModel
+                lugarViewModel = lugarViewModel,
+                navegacionViewModel = navegacionViewModel,
+                networkMonitor = networkMonitor,
+                navController = navController
             )
+
         }
 
 

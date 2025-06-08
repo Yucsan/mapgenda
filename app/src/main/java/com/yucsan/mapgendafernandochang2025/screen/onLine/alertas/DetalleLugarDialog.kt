@@ -157,7 +157,7 @@ fun DetalleLugarDialog(
                             onClick = {
                                 ubicacionActual?.let { origen ->
                                     val destino = lugar.latitud to lugar.longitud
-                                    val uri = Uri.parse("http://maps.google.com/maps?saddr=${origen.first},${origen.second}&daddr=${destino.first},${destino.second}&mode=walking")
+                                    val uri = Uri.parse("http://maps.google.com/maps?saddr=${origen.first},${origen.second}&daddr=${destino.first},${destino.second}&mode=w")
                                     val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                                         setPackage("com.google.android.apps.maps")
                                     }
