@@ -59,6 +59,7 @@ import com.yucsan.mapgendafernandochang2025.viewmodel.AuthViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.UsuarioViewModel
 import android.provider.Settings
 import android.net.Uri
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yucsan.mapgendafernandochang2025.util.CargandoUbicacionYMapa
 import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
@@ -68,116 +69,128 @@ import dagger.hilt.android.internal.Contexts.getApplication
 @OptIn(UnstableApi::class)
 @Composable
 fun iniciarMapa(
-   lugarViewModel: LugarViewModel,
-   navegacionViewModel: NavegacionViewModel,
-   mapViewModel: MapViewModel,
-   navController: NavController,
-   gpsViewModel: GPSViewModel,
-   themeViewModel: ThemeViewModel,
-   usuarioViewModel: UsuarioViewModel,
-   authViewModel: AuthViewModel,
-   networkMonitor: NetworkMonitor,
-   ubicacionViewModel: UbicacionViewModel
+    lugarViewModel: LugarViewModel,
+    navegacionViewModel: NavegacionViewModel,
+    mapViewModel: MapViewModel,
+    navController: NavController,
+    gpsViewModel: GPSViewModel,
+    themeViewModel: ThemeViewModel,
+    usuarioViewModel: UsuarioViewModel,
+    authViewModel: AuthViewModel,
+    networkMonitor: NetworkMonitor,
+    ubicacionViewModel: UbicacionViewModel
 ) {
-   val context = LocalContext.current
-   val authState   by authViewModel.authState.collectAsState()
-   val estadoUbic  by ubicacionViewModel.estado.collectAsStateWithLifecycle()   // 👈 nuevo
+    val context = LocalContext.current
+    val authState by authViewModel.authState.collectAsState()
+    val estadoUbic by ubicacionViewModel.estado.collectAsStateWithLifecycle()
 
-   /* ───────── Vídeo de fondo ───────── */
-   val exoPlayer = remember {
-      ExoPlayer.Builder(context).build().apply {
-         val dataSourceFactory = DefaultDataSource.Factory(context)
-         val mediaItem   = MediaItem.fromUri("android.resource://${context.packageName}/raw/introvideo")
-         val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
-            .createMediaSource(mediaItem)
-         setMediaSource(mediaSource)
-         repeatMode = ExoPlayer.REPEAT_MODE_ALL
-         prepare(); playWhenReady = true
-      }
-   }
-   DisposableEffect(Unit) { onDispose { exoPlayer.release() } }
+   val mostrarVideo = authState is AuthState.NoAutenticado || authState is AuthState.Loading
 
-   Box(Modifier.fillMaxSize()) {
-      /* 1️⃣ Vídeo de fondo */
-      AndroidView(
-         factory = {
-            PlayerView(it).apply {
-               player = exoPlayer
-               useController = false
-               resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-               layoutParams = FrameLayout.LayoutParams(
-                  ViewGroup.LayoutParams.MATCH_PARENT,
-                  ViewGroup.LayoutParams.MATCH_PARENT
-               )
+    /* ───────── Vídeo de fondo ───────── */
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            val dataSourceFactory = DefaultDataSource.Factory(context)
+            val mediaItem =
+                MediaItem.fromUri("android.resource://${context.packageName}/raw/introvideo")
+            val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
+                .createMediaSource(mediaItem)
+            setMediaSource(mediaSource)
+            repeatMode = ExoPlayer.REPEAT_MODE_ALL
+            prepare(); playWhenReady = true
+        }
+    }
+    DisposableEffect(Unit) { onDispose { exoPlayer.release() } }
+
+
+    Box(Modifier.fillMaxSize()) {
+        /* 1️⃣ Vídeo de fondo */
+        AndroidView(
+            factory = {
+                PlayerView(it).apply {
+                    player = exoPlayer
+                    useController = false
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                    layoutParams = FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                }
+            },
+           modifier = Modifier
+              .fillMaxSize()
+              .graphicsLayer {
+                 alpha = if (mostrarVideo) 1f else 0f
+              }
+        )
+
+
+        /* Contenido UI*/
+        when (authState) {
+            is AuthState.Loading -> {
+                Box(Modifier.fillMaxSize(), Alignment.Center) {
+                   CircularProgressIndicator()
+                }
             }
-         },
-         modifier = Modifier.fillMaxSize()
-      )
 
-      /* 2️⃣ Contenido → según autenticación */
-      when (authState) {
-         is AuthState.Loading -> {
-            Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
-         }
+            is AuthState.NoAutenticado -> {
+                PantallaLoginGoogle(
+                    gpsViewModel = gpsViewModel,
+                    authViewModel = authViewModel,
+                    usuarioViewModel = usuarioViewModel,
+                    networkMonitor = networkMonitor,
+                    context = context
+                )
+            }
 
-         is AuthState.NoAutenticado -> {
-            PantallaLoginGoogle(
-               gpsViewModel     = gpsViewModel,
-               authViewModel    = authViewModel,
-               usuarioViewModel = usuarioViewModel,
-               networkMonitor   = networkMonitor,
-               context          = context
-            )
-         }
+            is AuthState.Autenticado -> {
+                LaunchedEffect(Unit) {
+                   exoPlayer.release()
+                }
 
-         is AuthState.Autenticado -> {
-            /* Dejamos de mostrar el vídeo al loguear */
-            LaunchedEffect(Unit) { exoPlayer.release() }
-
-            /* 3️⃣ Flow de permisos + primera ubicación */
-            when (estadoUbic) {
-               /* — Sin permiso: lo pedimos — */
-               is UbicacionViewModel.EstadoUbicacion.SinPermiso -> {
-                  SolicitarPermisoUbicacion(
-                     onPermisoConcedido = { ubicacionViewModel.onPermisoConcedido() },
-                     onPermisoDenegado  = { ubicacionViewModel.onPermisoDenegado() }
-                  )
-               }
-
-               /* — Esperando “fix” (mostramos loader pero el mapa ya puede estar detrás) — */
-               is UbicacionViewModel.EstadoUbicacion.EsperandoFix -> {
-                  CargandoUbicacionYMapa(
-                     ubicacionViewModel = ubicacionViewModel,
-                     contenidoMapa = {
-                        PantallaMapaCompose(
-                           viewModelLugar = lugarViewModel,
-                           navegacionViewModel = navegacionViewModel,
-                           mapViewModel = mapViewModel,
-                           navController = navController,
-                           themeViewModel = themeViewModel,
-                           networkMonitor = networkMonitor,
-                           ubicacionViewModel = ubicacionViewModel
+                /* 3️⃣ Flow de permisos + primera ubicación */
+                when (estadoUbic) {
+                    /* — Sin permiso: lo pedimos — */
+                    is UbicacionViewModel.EstadoUbicacion.SinPermiso -> {
+                        SolicitarPermisoUbicacion(
+                            onPermisoConcedido = { ubicacionViewModel.onPermisoConcedido() },
+                            onPermisoDenegado = { ubicacionViewModel.onPermisoDenegado() }
                         )
-                     }
-                  )
-               }
+                    }
 
-               /* — Tenemos ubicación: mapa con MyLocation y listo — */
-               is UbicacionViewModel.EstadoUbicacion.Disponible -> {
-                  PantallaMapaCompose(
-                     viewModelLugar      = lugarViewModel,
-                     navegacionViewModel = navegacionViewModel,
-                     mapViewModel        = mapViewModel,
-                     navController       = navController,
-                     themeViewModel      = themeViewModel,
-                     networkMonitor      = networkMonitor,
-                     ubicacionViewModel  = ubicacionViewModel
-                  )
-               }
+                    /* — Esperando “fix” (mostramos loader pero el mapa ya puede estar detrás) — */
+                    is UbicacionViewModel.EstadoUbicacion.EsperandoFix -> {
+                        CargandoUbicacionYMapa(
+                            ubicacionViewModel = ubicacionViewModel,
+                            contenidoMapa = {
+                                PantallaMapaCompose(
+                                    viewModelLugar = lugarViewModel,
+                                    navegacionViewModel = navegacionViewModel,
+                                    mapViewModel = mapViewModel,
+                                    navController = navController,
+                                    themeViewModel = themeViewModel,
+                                    networkMonitor = networkMonitor,
+                                    ubicacionViewModel = ubicacionViewModel
+                                )
+                            }
+                        )
+                    }
+
+                    /* — Tenemos ubicación: mapa con MyLocation y listo — */
+                    is UbicacionViewModel.EstadoUbicacion.Disponible -> {
+                        PantallaMapaCompose(
+                            viewModelLugar = lugarViewModel,
+                            navegacionViewModel = navegacionViewModel,
+                            mapViewModel = mapViewModel,
+                            navController = navController,
+                            themeViewModel = themeViewModel,
+                            networkMonitor = networkMonitor,
+                            ubicacionViewModel = ubicacionViewModel
+                        )
+                    }
+                }
             }
-         }
-      }
-   }
+        }
+    }
 }
 
 

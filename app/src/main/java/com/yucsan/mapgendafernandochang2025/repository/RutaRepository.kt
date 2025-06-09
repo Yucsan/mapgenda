@@ -124,22 +124,30 @@ class RutaRepository(private val dao: RutaDao) {
         }
     }
 
+
     @OptIn(UnstableApi::class)
     suspend fun descargarRutasDesdeBackend(usuarioId: String, token: String) {
         RetrofitInstance.setTokenProvider { token }
-
+        Log.d("RutaRepository", "🔄 Descargando rutas desde el backend para el usuario $usuarioId")
         val rutasDTO = RetrofitInstance.rutaApi.obtenerRutasPorUsuario()
         for (dto in rutasDTO) {
-            // Convertir cada DTO a RutaEntity y guardar en Room
-            val ruta = RutaEntity(
-                nombre = dto.nombre,
-                categoria = dto.categoria,
-                ubicacionId = dto.ubicacionId,
-                polylineCodificada = dto.polylineCodificada,
-                fechaDeCreacion = System.currentTimeMillis()
-            )
 
-            val rutaId = dao.insertarRuta(ruta) // tu método local
+            // Verificamos si la ruta ya existe por nombre y ubicación
+
+            val existente = dao.obtenerRutaPorNombre(dto.nombre)
+
+            val rutaId = if (existente == null) {
+                val nuevaRuta = RutaEntity(
+                    nombre = dto.nombre,
+                    categoria = dto.categoria,
+                    ubicacionId = dto.ubicacionId,
+                    polylineCodificada = dto.polylineCodificada,
+                    fechaDeCreacion = System.currentTimeMillis()
+                )
+                dao.insertarRuta(nuevaRuta)
+            } else {
+                existente.id // ya existe, usamos el ID original
+            }
 
             val refs = dto.lugarIdsOrdenados.mapIndexed { index, id ->
                 RutaLugarCrossRef(rutaId = rutaId, lugarId = id, orden = index)
@@ -148,6 +156,7 @@ class RutaRepository(private val dao: RutaDao) {
             dao.insertarReferencias(refs)
         }
     }
+
 
 
     @OptIn(UnstableApi::class)

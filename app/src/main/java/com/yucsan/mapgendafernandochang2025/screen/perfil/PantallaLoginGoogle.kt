@@ -3,23 +3,31 @@ package com.yucsan.mapgendafernandochang2025.screen.perfil
 import android.app.Activity
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -51,6 +59,8 @@ fun PantallaLoginGoogle(
 ) {
     val context = LocalContext.current
     val activity = context as Activity
+    var forzarReintentoLogin by remember { mutableStateOf(false) }
+
     val hayConexion by networkMonitor.isConnected.collectAsState()
 
     val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -59,6 +69,9 @@ fun PantallaLoginGoogle(
         .build()
 
     val googleSignInClient = GoogleSignIn.getClient(activity, gso)
+
+    var cuentaDesactivada by remember { mutableStateOf(false) }
+    var emailDesactivado by remember { mutableStateOf("") }
 
     val signInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -69,11 +82,43 @@ fun PantallaLoginGoogle(
             val idToken = account.idToken
             Log.d("ID_TOKEN", "👉 Token de Google obtenido: $idToken")
 
+
+
             val service = RetrofitInstance.api
             CoroutineScope(Dispatchers.IO).launch {
                 try {
 
                     val response = service.loginConGoogle(mapOf("idToken" to idToken!!))
+
+                    if (response.code() == 403) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Cuenta desactivada. Puedes reactivarla.", Toast.LENGTH_LONG).show()
+
+                            val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+                            val idUsuario = prefs.getString("usuario_id", null)
+
+                            if (idUsuario != null) {
+                                usuarioViewModel.reactivarCuenta(
+                                    idUsuario,
+                                    onSuccess = {
+                                        Toast.makeText(context, "Cuenta reactivada. Reintentando login...", Toast.LENGTH_SHORT).show()
+                                        forzarReintentoLogin = true
+                                    },
+                                    onError = {
+                                        Toast.makeText(context, "Error al reactivar: $it", Toast.LENGTH_LONG).show()
+                                    }
+                                )
+                            } else {
+                                // ✅ No hay ID → activa botón manual
+                                cuentaDesactivada = true
+                                emailDesactivado = account.email ?: ""
+                            }
+
+                        }
+                        return@launch
+                    }
+
+
                     RetrofitInstance.setTokenProvider {
                         context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
                             .getString("jwt_token", null)
@@ -81,6 +126,7 @@ fun PantallaLoginGoogle(
 
                     if (response.isSuccessful) {
                         val loginResponse = response.body()
+
                         if (loginResponse != null) {
                             val usuario = loginResponse.usuario
                             val token = loginResponse.token
@@ -97,6 +143,13 @@ fun PantallaLoginGoogle(
             }
         } catch (e: ApiException) {
             Log.e("GOOGLE_LOGIN", "Fallo el login", e)
+        }
+    }
+
+    if (forzarReintentoLogin) {
+        LaunchedEffect(Unit) {
+            forzarReintentoLogin = false
+            signInLauncher.launch(googleSignInClient.signInIntent)
         }
     }
 
@@ -129,6 +182,34 @@ fun PantallaLoginGoogle(
 
                 }
         )
+
+        if (cuentaDesactivada) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Tu cuenta está desactivada. Puedes reactivarla manualmente.",
+                color = Color.Yellow,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+
+            Button(onClick = {
+                usuarioViewModel.buscarYReactivarPorEmail(
+                    emailDesactivado,
+                    onSuccess = {
+                        Toast.makeText(context, "Cuenta reactivada. Reintentando login...", Toast.LENGTH_SHORT).show()
+                        cuentaDesactivada = false
+                        forzarReintentoLogin = true
+                    },
+                    onError = {
+                        Toast.makeText(context, "Error al reactivar: $it", Toast.LENGTH_LONG).show()
+                    }
+                )
+            }) {
+                Text("Reactivar cuenta manualmente")
+            }
+        }
+
         if (!hayConexion) {
             Text(
                 text = "Sin conexión. Por favor, verifica tu red.",

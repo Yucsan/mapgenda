@@ -104,7 +104,7 @@ fun MapaOfflineView(
                     PackageManager.PERMISSION_GRANTED
                 ) {
                     map.isMyLocationEnabled = true
-                    map.uiSettings.isMyLocationButtonEnabled = true
+                    map.uiSettings.isMyLocationButtonEnabled = false
                 } else {
                     map.uiSettings.isMyLocationButtonEnabled = false
                 }

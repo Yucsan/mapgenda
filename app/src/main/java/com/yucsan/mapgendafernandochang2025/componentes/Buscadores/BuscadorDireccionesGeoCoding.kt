@@ -68,7 +68,7 @@ fun BuscadorGeocoding(
             modifier = Modifier
                 .matchParentSize()
                 .clip(MaterialTheme.shapes.medium) // bordes redondeados
-                .background( Color.DarkGray.copy(alpha = 0.5f),
+                .background( Color.White.copy(alpha = 0.8f),
                     shape = MaterialTheme.shapes.medium
                 )
         )
@@ -83,7 +83,7 @@ fun BuscadorGeocoding(
             OutlinedTextField(
                 value = direccion,
                 onValueChange = { direccion = it },
-                label = { Text("Buscador", color = Color.White, fontSize = 16.sp) },
+                label = { Text("Buscador", color = MaterialTheme.colorScheme.primary, fontSize = 16.sp) },
                 singleLine = true,
                 modifier = Modifier
                     .weight(1f)

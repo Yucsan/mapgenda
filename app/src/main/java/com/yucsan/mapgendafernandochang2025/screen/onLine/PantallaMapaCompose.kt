@@ -30,6 +30,7 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import com.yucsan.mapgendafernandochang2025.ThemeViewModel
+import com.yucsan.mapgendafernandochang2025.componentes.cajasTexto.InputDireccionBox
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
 import com.yucsan.mapgendafernandochang2025.screens.mapa.alertas.AgregarLugarDialog
 import com.yucsan.mapgendafernandochang2025.screens.mapa.alertas.DetalleLugarDialog
@@ -86,6 +87,9 @@ fun PantallaMapaCompose(
 
     val sharedPrefs = context.getSharedPreferences("map_prefs", 0)
     var mostrarBienvenida by remember { mutableStateOf(false) }
+
+    var ubicacionSeleccionada by remember { mutableStateOf<LatLng?>(null) }
+
 
     LaunchedEffect(Unit) {
         if (!sharedPrefs.getBoolean("bienvenida_mostrada", false)) {
@@ -246,6 +250,15 @@ fun PantallaMapaCompose(
         viewModelLugar.agruparLugaresPorZonaGeografica2(radioKm = 8.0)
     }
 
+    LaunchedEffect(ubicacionSeleccionada) {
+        ubicacionSeleccionada?.let { latLng ->
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngZoom(latLng, 15f)
+            )
+            Log.d("ZOOM_INPUT", "🎯 Cámara centrada en: $latLng")
+        }
+    }
+
 
 
     Box(Modifier.fillMaxSize()) {
@@ -339,6 +352,14 @@ fun PantallaMapaCompose(
                     )
                 }
 
+                ubicacionSeleccionada?.let { latLng ->
+                    Marker(
+                        state = MarkerState(position = latLng),
+                        title = "Ubicación buscada"
+                    )
+                }
+
+
                 if (mostrarHalo && ultimoLugarId != null) {
                     lugaresFiltrados.find { it.id == ultimoLugarId }?.let { lugar ->
                         Circle(
@@ -362,6 +383,18 @@ fun PantallaMapaCompose(
                     style = MaterialTheme.typography.bodySmall
                 )
             }
+
+            InputDireccionBox(
+                apiKey = Secrets.GOOGLE_MAPS_API_KEY,
+                googleMap = googleMap,
+                onLugarSeleccionado = { lugar ->
+                    ubicacionSeleccionada = LatLng(lugar.latitud, lugar.longitud)
+                    android.util.Log.d(
+                        "RUTA_OFFLINE",
+                        "✅ Ubicación seleccionada por INPUT: ${lugar.latitud}, ${lugar.longitud}"
+                    )
+                }
+            )
 
             // UI superpuesta (botones, loader, filtros, dialogos)
             Column(

@@ -17,8 +17,15 @@ import kotlinx.coroutines.flow.Flow
 interface RutaDao {
 
     // Insertar Ruta base
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarRuta(ruta: RutaEntity): Long
+
+    @Query("SELECT * FROM rutas WHERE nombre = :nombre AND ubicacionId = :ubicacionId LIMIT 1")
+    suspend fun obtenerRutaPorNombreYUbicacion(nombre: String, ubicacionId: Long?): RutaEntity?
+
+    @Query("SELECT * FROM rutas WHERE nombre = :nombre LIMIT 1")
+    suspend fun obtenerRutaPorNombre(nombre: String): RutaEntity?
+
 
     // Insertar referencias entre Ruta y Lugares
     @Insert(onConflict = OnConflictStrategy.REPLACE)

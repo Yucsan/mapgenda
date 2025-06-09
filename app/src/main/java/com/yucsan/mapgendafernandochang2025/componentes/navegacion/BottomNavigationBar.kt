@@ -52,11 +52,9 @@ fun BottomNavigationBar(navController: NavController, authState: StateFlow<AuthS
 
                     if (screen == BottomBarScreen.MenuOffline) {
                         // 🔁 Forzar reinicio de la sección si no estás en la raíz
-                        if (currentRoute != "menuoffline") {
-                            navController.navigate("menuoffline") {
-                                popUpTo("menuoffline") { inclusive = true }
-                                launchSingleTop = true
-                            }
+                        navController.navigate("menuoffline") {
+                            launchSingleTop = true
+                            restoreState = true
                         }
                     } else {
                         // 🧭 Navegación normal para otros botones

@@ -58,6 +58,7 @@ fun PantallaPerfil(viewModel: LugarViewModel,
     val scope = rememberCoroutineScope()
     var nuevaFotoUri by remember { mutableStateOf<String?>(null) }
     val usuario by usuarioViewModel.usuario.collectAsState()
+    var showSolicitarBajaDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.cargarConteoPorCategoria()
@@ -94,6 +95,15 @@ fun PantallaPerfil(viewModel: LugarViewModel,
         drawerContent = {
             ModalDrawerSheet {
                 Text("Configuración", modifier = Modifier.padding(16.dp))
+                Divider()
+
+                Text(
+                    text = "Solicitar baja de cuenta",
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .clickable { showSolicitarBajaDialog = true },
+                    color = Color.Red
+                )
                 Divider()
                 Text("Ayuda", modifier = Modifier.padding(16.dp))
                 Divider()
@@ -283,6 +293,7 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                                 Text("Editar Perfil")
                             }
                         }
+
                     } else {
                         item {
                             Text("No hay sesión iniciada.")
@@ -367,6 +378,40 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                     }
                 )
             }
+
+            if (showSolicitarBajaDialog) {
+                AlertDialog(
+                    onDismissRequest = { showSolicitarBajaDialog = false },
+                    title = { Text("¿Deseas darte de baja?") },
+                    text = { Text("Tu cuenta será desactivada y no podrás volver a iniciar sesión hasta que la reactives.") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showSolicitarBajaDialog = false
+                            usuario?.let {
+                                usuarioViewModel.desactivarCuenta(
+                                    it.id,
+                                    onSuccess = {
+                                        Toast.makeText(context, "Cuenta desactivada", Toast.LENGTH_SHORT).show()
+                                        authViewModel.cerrarSesion(context)
+                                        navController.navigate(Ruta.Pantalla1.ruta) { popUpTo(0) }
+                                    },
+                                    onError = {
+                                        Toast.makeText(context, "Error al desactivar: $it", Toast.LENGTH_LONG).show()
+                                    }
+                                )
+                            }
+                        }) {
+                            Text("Confirmar baja", color = Color.Red)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showSolicitarBajaDialog = false }) {
+                            Text("Cancelar")
+                        }
+                    }
+                )
+            }
+
 
         }
     }

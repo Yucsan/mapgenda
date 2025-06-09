@@ -1,6 +1,7 @@
 package com.yucsan.mapgendafernandochang2025
 
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +17,7 @@ import com.yucsan.mapgendafernandochang2025.viewmodel.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.yucsan.mapgendafernandochang2025.util.state.NetworkMonitor
@@ -42,9 +44,15 @@ fun MainScreen(
     val isDarkMode by themeViewModel.isDarkMode.collectAsState()
 
     Scaffold(
-        bottomBar = { BottomNavigationBar(navController = navController, authViewModel.authState) }
+        bottomBar = { BottomNavigationBar(navController = navController, authViewModel.authState) },
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(innerPadding)
+        ) {
             MainNavigation(
                 navController = navController,
                 lugarViewModel = lugarViewModel,

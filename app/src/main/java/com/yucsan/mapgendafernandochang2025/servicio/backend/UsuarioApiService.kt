@@ -18,12 +18,20 @@ interface UsuarioApiService {
         @Body usuarioDTO: UsuarioDTO
     ): Response<UsuarioDTO>
 
-
     @POST("usuarios/login-google")
     suspend fun loginConGoogle(@Body body: Map<String, String>): Response<LoginResponse>
 
     @GET("usuarios/get/{id}")
     suspend fun obtenerUsuarioPorId(@Path("id") id: String): Response<UsuarioDTO>
+
+    @PUT("usuarios/{id}/desactivar")
+    suspend fun desactivarCuenta(@Path("id") id: String): Response<Void>
+
+    @PUT("usuarios/{id}/reactivar")
+    suspend fun reactivarCuenta(@Path("id") id: String): Response<Void>
+
+    @GET("usuarios/email/{email}")
+    suspend fun obtenerUsuarioPorEmail(@Path("email") email: String): Response<UsuarioDTO>
 
 
 }
