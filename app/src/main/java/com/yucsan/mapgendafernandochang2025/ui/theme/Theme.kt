@@ -11,6 +11,11 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import android.view.Window
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
+
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -36,18 +41,24 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun MapGendaFernandoChang2025Theme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val context = LocalContext.current
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
+    }
+
+    // Establecer color del sistema (barra de estado)
+    if (context is Activity) {
+        val window: Window = context.window
+        window.statusBarColor = colorScheme.background.toArgb()
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.isAppearanceLightStatusBars = !darkTheme // 👈 ¡clave para los íconos!
     }
 
     MaterialTheme(

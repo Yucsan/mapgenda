@@ -122,15 +122,7 @@ fun PantallaFiltroDescarga(
         exit = exitAnimation
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFFFFFFFF), Color(0xFFE1F4ED)
-                        )
-                    )
-                )
+            modifier = Modifier.fillMaxSize()
         ) {
 
             LazyColumn(
@@ -252,14 +244,14 @@ fun PantallaFiltroDescarga(
                     ) {
                         Text("📍 Elegir zona de descarga en el mapa")
                     }
-
+/*
                     ubicacionSeleccionada.value?.let { (lat, lng) ->
                         Text(
                             text = "Zona seleccionada: %.4f, %.4f".format(lat, lng),
                             color = Color.Magenta,
                             modifier = Modifier.padding(top = 6.dp)
                         )
-                    }
+                    }*/
                 }
 
                 item {

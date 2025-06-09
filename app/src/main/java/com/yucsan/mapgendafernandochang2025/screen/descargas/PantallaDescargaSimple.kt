@@ -48,44 +48,23 @@ fun PantallaDescargaSimple(viewModel: LugarViewModel, ubicacionViewModel: Ubicac
         Spacer(modifier = Modifier.height(16.dp))
 
 
-        BotonAccion(texto = "Sube Lugares") {
+        BotonAccion(texto = "Sube data la Nube") {
             CoroutineScope(Dispatchers.IO).launch {
                 viewModel.sincronizarLugaresConApi()
-            }
-        }
-
-        BotonAccion(texto = "Sube Ubicaciones") {
-            CoroutineScope(Dispatchers.IO).launch {
                 ubicacionViewModel.sincronizarConApi(context)
-            }
-        }
-
-        BotonAccion(texto = "SUBE RUTAS") {
-            CoroutineScope(Dispatchers.IO).launch {
                 rutaViewModel.subirRutasLocalesAlBackend(context)
             }
         }
 
-
-        BotonAccion(texto = "Descargar mis Lugares") {
+        BotonAccion(texto = "Descargar data de la Nube") {
             CoroutineScope(Dispatchers.IO).launch {
                 viewModel.descargarLugaresDesdeBackend(context)
-
-            }
-        }
-
-        BotonAccion(texto = "Descargar mis ubicaciones") {
-            CoroutineScope(Dispatchers.IO).launch {
                 ubicacionViewModel.descargarUbicaciones(context)
-            }
-        }
-
-
-        BotonAccion(texto = "Descargar RUTAS") {
-            CoroutineScope(Dispatchers.IO).launch {
                 rutaViewModel.descargarRutasDesdeBackend(context)
             }
         }
+
+
 
         if (cargando) {
             Spacer(modifier = Modifier.height(24.dp))
