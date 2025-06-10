@@ -35,7 +35,7 @@ fun PantallaTabsDescarga(
                     text = {
                         Text(
                             text = title,
-                            color = Color.Black,
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
                         )
                     }

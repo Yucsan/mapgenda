@@ -27,7 +27,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
@@ -148,11 +152,7 @@ fun PantallaPerfil(viewModel: LugarViewModel,
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFFE1F4ED), Color(0xFFC9DFF4))
-                        )
-                    ),
+                    .background(color = MaterialTheme.colorScheme.background),
                 contentAlignment = Alignment.Center,
             ) {
                 LazyColumn(
@@ -192,10 +192,11 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
                                 OutlinedButton(
                                     onClick = { pickImageLauncher.launch(arrayOf("image/*")) },
-                                    modifier = Modifier.height(40.dp)
+                                    modifier = Modifier.height(40.dp).fillMaxWidth(),
+                                    shape = MaterialTheme.shapes.medium
                                 ) {
                                     Icon(Icons.Default.Edit, contentDescription = "Editar")
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -206,7 +207,7 @@ fun PantallaPerfil(viewModel: LugarViewModel,
 
                         if (nuevaFotoUri != null && nuevaFotoUri != usuario?.fotoPerfilUri) {
                             item {
-                                Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
                                 Button(
                                     onClick = {
                                         coroutineScope.launch {
@@ -252,7 +253,9 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                                                 }
                                             }
                                         }
-                                    }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = MaterialTheme.shapes.medium
                                 ) {
                                     Text("Guardar cambios")
                                 }
@@ -269,17 +272,49 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                                 usuario?.id?.let {
                                     usuarioViewModel.refrescarUsuarioDesdeApi(UUID.fromString(it))
                                 }
-                            }) {
+                            },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.medium
+                                ) {
                                 Text("🔄 Actualizar foto desde API")
                             }
 
-                            Spacer(modifier = Modifier.height(24.dp))
-                            Text("Nombre: ${usuario?.nombre}")
-                            Text("Email: ${usuario?.email}")
-                            Text("Rol: ${usuario?.rol}")
-                            Text("País: ${usuario?.pais ?: "No especificado"}")
-                            Text("Ciudad: ${usuario?.ciudad ?: "No especificado"}")
-                            Text("Verificado: ${if (usuario?.verificado == true) "Sí" else "No"}")
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.Start
+                            ) {
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                Text(buildAnnotatedString {
+                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Nombre: ") }
+                                    append(usuario?.nombre ?: "Desconocido")
+                                })
+
+                                Text(buildAnnotatedString {
+                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Email: ") }
+                                    append(usuario?.email ?: "Desconocido")
+                                })
+
+                                Text(buildAnnotatedString {
+                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Rol: ") }
+                                    append(usuario?.rol ?: "Desconocido")
+                                })
+
+                                Text(buildAnnotatedString {
+                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("País: ") }
+                                    append(usuario?.pais ?: "No especificado")
+                                })
+
+                                Text(buildAnnotatedString {
+                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Ciudad: ") }
+                                    append(usuario?.ciudad ?: "No especificado")
+                                })
+
+                                Text(buildAnnotatedString {
+                                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Verificado: ") }
+                                    append(if (usuario?.verificado == true) "Sí" else "No")
+                                })
+                            }
                             Spacer(modifier = Modifier.height(24.dp))
 
                             Button(onClick = {
@@ -289,7 +324,10 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                                     nuevaCiudad = TextFieldValue(it.ciudad ?: "")
                                     showDialog = true
                                 }
-                            }) {
+                            },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.medium
+                            ) {
                                 Text("Editar Perfil")
                             }
                         }

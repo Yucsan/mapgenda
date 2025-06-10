@@ -37,7 +37,7 @@ fun MenuRutaOffline(
     ) {
 
         Text(
-            text = "ARCHIVOS EN LA NUBE",
+            text = "MENÚ OFFLINE",
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier
                 .padding(vertical = 16.dp)

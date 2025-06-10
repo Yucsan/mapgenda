@@ -73,6 +73,8 @@ import androidx.compose.ui.text.TextStyle
 import com.google.android.gms.location.LocationServices
 import com.yucsan.mapgendafernandochang2025.screen.offLine.componentes.PantallaGuiaDescargaOffline
 import com.yucsan.mapgendafernandochang2025.servicio.maps.directions.directions.DirectionsService
+import com.yucsan.mapgendafernandochang2025.util.MarcadorIconoUtils.generarIconoConTextoSobreImagen
+import com.yucsan.mapgendafernandochang2025.util.MarcadorIconoUtils.getDrawableForCategoria
 import com.yucsan.mapgendafernandochang2025.util.decodificarPolyline
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -656,7 +658,51 @@ fun PantallaMapaOffline(
                             latLngSeleccionado = latLngSeleccionado!!,
                             categoriasDisponibles = categoriasDisponibles,
                             onGuardar = { nuevoLugar ->
-                                lugarViewModel.agregarLugar(nuevoLugar)
+                                val categoriaPadre = nuevoLugar.categoriaGeneral?.takeIf { it.isNotBlank() } ?: "custom"
+                                val subcategoria = nuevoLugar.subcategoria?.takeIf { it.isNotBlank() } ?: "custom"
+
+                                val lugarConFallback = nuevoLugar.copy(
+                                    categoriaGeneral = categoriaPadre,
+                                    subcategoria = subcategoria
+                                )
+
+                                // Guardar con categorías seguras
+                                lugarViewModel.agregarLugar(lugarConFallback)
+
+                                // Forzar filtros para asegurar aparición inmediata
+                                lugarViewModel.actualizarCategorias(setOf(categoriaPadre))
+                                lugarViewModel.actualizarFiltrosActivos(setOf(subcategoria))
+
+                                // Forzar recarga tras agregar
+                                lugarViewModel.recargarLugares()
+
+                                // Guardar una referencia local al latLng antes de establecerlo como null
+                                val latLngGuardado = latLngSeleccionado
+
+                                // Agregar marcador al mapa
+                                googleMap?.let { map ->
+                                    scope.launch {
+                                        latLngGuardado?.let { latLng ->
+                                            val drawableRes = getDrawableForCategoria(categoriaPadre)
+                                            val icono = generarIconoConTextoSobreImagen(context, lugarConFallback.nombre, drawableRes)
+                                            
+                                            map.addMarker(
+                                                com.google.android.gms.maps.model.MarkerOptions()
+                                                    .position(latLng)
+                                                    .title(lugarConFallback.nombre)
+                                                    .icon(icono)
+                                            )
+                                            
+                                            // Centrar la cámara en el nuevo marcador
+                                            map.animateCamera(
+                                                CameraUpdateFactory.newLatLngZoom(latLng, 15f)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                latLngSeleccionado = null
+                                modoAgregarLugar = false
                             },
                             onDismiss = {
                                 latLngSeleccionado = null
