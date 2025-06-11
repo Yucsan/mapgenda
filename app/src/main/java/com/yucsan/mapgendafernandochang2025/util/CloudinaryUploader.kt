@@ -28,15 +28,14 @@ object CloudinaryUploader {
         if (!initialized) {
             val config = hashMapOf(
                 "cloud_name" to "dknlc31bw",
-                "upload_preset" to "mapgenda1", // 👈 reemplaza con el tuyo real
-                "folder" to "usuarios"                 // 👈 sube todo a /usuarios
+                "upload_preset" to "mapgenda1"
             )
             MediaManager.init(context, config)
             initialized = true
         }
     }
 
-    suspend fun subirImagenDesdeUri(context: Context, uri: Uri): String? {
+    suspend fun subirImagenDesdeUri(context: Context, uri: Uri, folder: String): String? {
         init(context)
 
         return suspendCancellableCoroutine { continuation ->
@@ -49,7 +48,7 @@ object CloudinaryUploader {
 
                 MediaManager.get().upload(tempFile.path)
                     .unsigned("mapgenda1") // 👈 reemplaza con el nombre real
-                    .option("folder", "usuarios")
+                    .option("folder", folder)
                     .option("public_id", UUID.randomUUID().toString())
                     .callback(object : UploadCallback {
                         override fun onStart(requestId: String?) {}
@@ -129,9 +128,5 @@ object CloudinaryUploader {
             }
         }
     }
-
-
-
-
-
 }
+

@@ -84,7 +84,8 @@ fun MainNavigation(
                 navController,
                 themeViewModel,
                 networkMonitor,
-                ubicacionViewModel
+                ubicacionViewModel,
+                authViewModel
             )
         }
 
@@ -200,7 +201,8 @@ fun MainNavigation(
                 lugarViewModel = lugarViewModel,
                 navegacionViewModel = navegacionViewModel,
                 networkMonitor = networkMonitor,
-                navController = navController
+                navController = navController,
+                authViewModel = authViewModel,
             )
 
         }

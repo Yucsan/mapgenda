@@ -45,6 +45,7 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.navigation.NavController
+import com.yucsan.mapgendafernandochang2025.viewmodel.AuthViewModel
 
 
 @SuppressLint("SuspiciousIndentation")
@@ -57,7 +58,8 @@ fun PantallaListadoLugares(
     lugarViewModel: LugarViewModel,
     navegacionViewModel: NavegacionViewModel,
     networkMonitor: NetworkMonitor,
-    navController: NavController
+    navController: NavController,
+    authViewModel: AuthViewModel
 ) {
     // 1️⃣ Estado de ubicación seleccionada
     val ubicacion by lugarRutaOfflineViewModel.ubicacion.collectAsState(initial = null)
@@ -252,7 +254,8 @@ fun PantallaListadoLugares(
                             lugar = lugar,
                             lugarViewModel = lugarViewModel,
                             navegacionViewModel = navegacionViewModel,
-                            networkMonitor = networkMonitor
+                            networkMonitor = networkMonitor,
+                            authViewModel = authViewModel
                         )
                     }
                 }
@@ -267,7 +270,8 @@ fun ListadoLugarItem(
     lugar: LugarLocal,
     lugarViewModel: LugarViewModel,
     navegacionViewModel: NavegacionViewModel,
-    networkMonitor: NetworkMonitor
+    networkMonitor: NetworkMonitor,
+    authViewModel: AuthViewModel
 ) {
     val context = LocalContext.current
     var mostrarDialogo by remember { mutableStateOf(false) }
@@ -326,7 +330,8 @@ fun ListadoLugarItem(
             navegacionViewModel = navegacionViewModel,
             onDismiss = { mostrarDialogo = false },
             ubicacionActual = ubicacionActual,
-            hayConexion = hayConexion
+            hayConexion = hayConexion,
+            authViewModel = authViewModel
         )
     }
 }

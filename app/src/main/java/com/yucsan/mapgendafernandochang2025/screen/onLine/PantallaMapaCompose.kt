@@ -51,7 +51,8 @@ fun PantallaMapaCompose(
     navController: NavController,
     themeViewModel: ThemeViewModel,
     networkMonitor: NetworkMonitor,
-    ubicacionViewModel: UbicacionViewModel
+    ubicacionViewModel: UbicacionViewModel,
+    authViewModel: AuthViewModel
 ) {
     val context = LocalContext.current
     val hayConexion by networkMonitor.isConnected.collectAsState()
@@ -486,7 +487,8 @@ fun PantallaMapaCompose(
                         lugarSeleccionado = null
                     },
                     ubicacionActual = ubicacionTiempoReal,
-                    hayConexion = hayConexion
+                    hayConexion = hayConexion,
+                    authViewModel = authViewModel
                 )
             }
 

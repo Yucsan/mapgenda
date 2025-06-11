@@ -169,7 +169,8 @@ fun iniciarMapa(
                                     navController = navController,
                                     themeViewModel = themeViewModel,
                                     networkMonitor = networkMonitor,
-                                    ubicacionViewModel = ubicacionViewModel
+                                    ubicacionViewModel = ubicacionViewModel,
+                                    authViewModel = authViewModel
                                 )
                             }
                         )
@@ -184,7 +185,8 @@ fun iniciarMapa(
                             navController = navController,
                             themeViewModel = themeViewModel,
                             networkMonitor = networkMonitor,
-                            ubicacionViewModel = ubicacionViewModel
+                            ubicacionViewModel = ubicacionViewModel,
+                            authViewModel = authViewModel
                         )
                     }
                 }

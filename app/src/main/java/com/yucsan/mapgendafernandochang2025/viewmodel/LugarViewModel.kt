@@ -35,6 +35,13 @@ import com.yucsan.mapgendafernandochang2025.util.categoriasPersonalizadas
 import kotlinx.coroutines.withContext
 import com.yucsan.mapgendafernandochang2025.util.haversineDistance
 import com.yucsan.mapgendafernandochang2025.entidad.UbicacionLocal
+import com.yucsan.mapgendafernandochang2025.util.config.ApiConfig
+import kotlinx.coroutines.launch
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import org.json.JSONObject
+import okhttp3.Request
+
 
 
 
@@ -816,7 +823,57 @@ class LugarViewModel(
     }
 
 
+    fun actualizarFotoLugar(idLugar: String, nuevaUrl: String, jwt: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val client = OkHttpClient()
+                val json = JSONObject().apply {
+                    put("fotoUrl", nuevaUrl)
+                }
+
+                val body = RequestBody.create(
+                    "application/json; charset=utf-8".toMediaType(),
+                    json.toString()
+                )
+
+                val request = Request.Builder()
+                    .url("${ApiConfig.BASE_URL}lugares/$idLugar/actualizar-foto")
+                    .put(body)
+                    .addHeader("Authorization", "Bearer $jwt")
+                    .build()
+
+                val response = client.newCall(request).execute()
+
+                if (response.isSuccessful) {
+                    Log.d("LugarViewModel", "✅ Foto actualizada correctamente para lugar $idLugar")
+                } else {
+                    val error = response.body?.string()
+                    Log.e("LugarViewModel", "⚠️ Error al actualizar foto: $error")
+                }
+
+            } catch (e: Exception) {
+                Log.e("LugarViewModel", "❌ Excepción al actualizar foto: ${e.message}", e)
+            }
+        }
+    }
+
+    fun actualizarLugarLocal(lugar: LugarLocal) {
+        viewModelScope.launch {
+            try {
+                repository.actualizarLugar(lugar)
+                Log.d("LugarViewModel", "✅ Lugar actualizado localmente: ${lugar.nombre}")
+                // Forzar recarga de lugares
+                recargarLugares()
+            } catch (e: Exception) {
+                Log.e("LugarViewModel", "❌ Error al actualizar lugar localmente: ${e.message}", e)
+            }
+        }
+    }
+
+
+
     //**************** FUNCIONALIDADES BACKEND *****************//
+
 
     // subida
     fun sincronizarLugaresConApi() {

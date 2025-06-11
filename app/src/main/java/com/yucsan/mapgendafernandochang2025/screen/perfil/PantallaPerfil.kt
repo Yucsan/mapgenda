@@ -249,7 +249,7 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                                                     val urlAnterior = usuario!!.fotoPerfilUri
                                                     val jwt = authViewModel.getTokenSeguro(context)
 
-                                                    val secureUrl = CloudinaryUploader.subirImagenDesdeUri(context, uri)
+                                                    val secureUrl = CloudinaryUploader.subirImagenDesdeUri(context, uri, "usuarios")
 
                                                     if (secureUrl != null) {
                                                         val actualizado = usuario!!.copy(fotoPerfilUri = secureUrl)

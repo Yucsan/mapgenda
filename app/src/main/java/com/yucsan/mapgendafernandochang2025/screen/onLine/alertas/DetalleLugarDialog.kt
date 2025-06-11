@@ -3,6 +3,9 @@ package com.yucsan.mapgendafernandochang2025.screens.mapa.alertas
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -15,15 +18,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import com.google.android.gms.maps.model.Polyline
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
+import com.yucsan.mapgendafernandochang2025.util.CloudinaryUploader
+import com.yucsan.mapgendafernandochang2025.viewmodel.AuthViewModel
 
 import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.NavegacionViewModel
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -34,13 +42,47 @@ fun DetalleLugarDialog(
     navegacionViewModel: NavegacionViewModel,
     onDismiss: () -> Unit,
     ubicacionActual: Pair<Double, Double>?,
-    hayConexion: Boolean
+    hayConexion: Boolean,
+    authViewModel: AuthViewModel
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var modoEdicion by remember { mutableStateOf(false) }
     var nombreEditado by remember { mutableStateOf("") }
     var descripcionEditada by remember { mutableStateOf("") }
     var mostrarConfirmacionEliminar by remember { mutableStateOf(false) }
+
+    var nuevaFotoUri by remember { mutableStateOf<Uri?>(null) }
+    var cargando by remember { mutableStateOf(false) }
+
+    // Control de cambios
+    var hayCambios by remember { mutableStateOf(false) }
+
+    // Inicializar valores cuando se entra en modo edición
+    LaunchedEffect(modoEdicion) {
+        if (modoEdicion) {
+            nombreEditado = lugar.nombre
+            descripcionEditada = lugar.direccion
+        }
+    }
+
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            context.contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            nuevaFotoUri = it
+            hayCambios = true
+        }
+    }
+
+    // Observar cambios en los campos de texto
+    LaunchedEffect(nombreEditado, descripcionEditada) {
+        hayCambios = nombreEditado != lugar.nombre || descripcionEditada != lugar.direccion
+    }
 
     fun construirUrlFoto(photoReference: String, apiKey: String, maxWidth: Int = 600): String {
         return if (photoReference.startsWith("http")) {
@@ -74,27 +116,49 @@ fun DetalleLugarDialog(
         },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
-
-                // ✅ Imagen solo si hay conexión
-                if (hayConexion && lugar.photoReference != null) {
-                    val url = construirUrlFoto(lugar.photoReference, apiKey)
-                    AsyncImage(
-                        model = url,
-                        contentDescription = "Imagen del lugar",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .padding(bottom = 8.dp)
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                            .padding(bottom = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Sin conexión para cargar imagen", color = Color.Gray)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .padding(bottom = 8.dp)
+                ) {
+                    if (nuevaFotoUri != null) {
+                        // Mostrar la nueva imagen seleccionada
+                        val painter = rememberAsyncImagePainter(
+                            model = nuevaFotoUri,
+                            contentScale = ContentScale.Crop
+                        )
+                        Image(
+                            painter = painter,
+                            contentDescription = "Nueva imagen del lugar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else if (lugar.photoReference != null && hayConexion) {
+                        // Mostrar la imagen existente
+                        val url = if (lugar.photoReference.startsWith("http")) {
+                            lugar.photoReference
+                        } else {
+                            construirUrlFoto(lugar.photoReference, apiKey)
+                        }
+                        val painter = rememberAsyncImagePainter(
+                            model = url,
+                            contentScale = ContentScale.Crop
+                        )
+                        Image(
+                            painter = painter,
+                            contentDescription = "Imagen del lugar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        // Mostrar mensaje cuando no hay imagen
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Sin imagen", color = Color.Gray)
+                        }
                     }
                 }
 
@@ -112,20 +176,85 @@ fun DetalleLugarDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(
-                        onClick = {
-                            val lugarActualizado = lugar.copy(
-                                nombre = nombreEditado,
-                                direccion = descripcionEditada
-                            )
-                            viewModelLugar.actualizarLugarManual(lugarActualizado)
-                            Toast.makeText(context, "Lugar actualizado", Toast.LENGTH_SHORT).show()
-                            onDismiss()
-                        },
-                        modifier = Modifier.align(Alignment.End)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        Text("Guardar")
+                        OutlinedButton(
+                            onClick = { pickImageLauncher.launch(arrayOf("image/*")) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 8.dp)
+                        ) {
+                            Text("Cambiar foto")
+                        }
+
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    cargando = true
+                                    try {
+                                        // Primero actualizar la foto si hay una nueva
+                                        val nuevaUrl = nuevaFotoUri?.let {
+                                            CloudinaryUploader.subirImagenDesdeUri(
+                                                context,
+                                                it,
+                                                "lugares"
+                                            )
+                                        }
+
+                                        val jwt = authViewModel.getTokenSeguro(context)
+
+                                        if (!nuevaUrl.isNullOrBlank() && !jwt.isNullOrBlank()) {
+
+                                            // Eliminar la imagen anterior si era una URL completa
+                                            val fotoAnterior = lugar.photoReference
+                                            if (!fotoAnterior.isNullOrBlank() && fotoAnterior.startsWith("http")) {
+                                                val publicId = CloudinaryUploader.extraerPublicIdDesdeUrl(fotoAnterior)
+                                                if (!publicId.isNullOrBlank()) {
+                                                    CloudinaryUploader.eliminarImagenDesdeBackend(publicId, jwt)
+                                                }
+                                            }
+
+                                            viewModelLugar.actualizarFotoLugar(
+                                                lugar.id,
+                                                nuevaUrl,
+                                                jwt
+                                            )
+                                        }
+
+                                        // Luego actualizar el lugar con los nuevos datos
+                                        val lugarActualizado = lugar.copy(
+                                            nombre = nombreEditado,
+                                            direccion = descripcionEditada,
+                                            photoReference = nuevaUrl ?: lugar.photoReference
+                                        )
+                                        viewModelLugar.actualizarLugarLocal(lugarActualizado)
+
+                                        Toast.makeText(
+                                            context,
+                                            "Cambios guardados",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(
+                                            context,
+                                            "Error: ${e.message}",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    } finally {
+                                        cargando = false
+                                        onDismiss()
+                                    }
+                                }
+                            },
+                            enabled = hayCambios,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 8.dp)
+                        ) {
+                            Text("Guardar cambios")
+                        }
                     }
                 } else {
                     Text("📍 Dirección: ${lugar.direccion}")
@@ -145,32 +274,37 @@ fun DetalleLugarDialog(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         IconButton(onClick = {
-                            nombreEditado = lugar.nombre
-                            descripcionEditada = lugar.direccion
                             modoEdicion = true
                         }) {
                             Icon(Icons.Default.Edit, contentDescription = "Editar")
                         }
 
-                        // ✅ Botón de navegación deshabilitado si no hay conexión
                         IconButton(
                             onClick = {
                                 ubicacionActual?.let { origen ->
                                     val destino = lugar.latitud to lugar.longitud
-                                    val uri = Uri.parse("http://maps.google.com/maps?saddr=${origen.first},${origen.second}&daddr=${destino.first},${destino.second}&mode=w")
+                                    val uri =
+                                        Uri.parse("http://maps.google.com/maps?saddr=${origen.first},${origen.second}&daddr=${destino.first},${destino.second}&mode=w")
                                     val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                                         setPackage("com.google.android.apps.maps")
                                     }
                                     if (intent.resolveActivity(context.packageManager) != null) {
                                         context.startActivity(intent)
                                     } else {
-                                        Toast.makeText(context, "Google Maps no está instalado", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Google Maps no está instalado",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 }
                             },
-                            enabled = hayConexion // 👈 importante
+                            enabled = hayConexion
                         ) {
-                            Icon(Icons.Default.Directions, contentDescription = "Abrir en Google Maps")
+                            Icon(
+                                Icons.Default.Directions,
+                                contentDescription = "Abrir en Google Maps"
+                            )
                         }
 
                         IconButton(onClick = {
