@@ -32,6 +32,9 @@ import androidx.compose.ui.text.withStyle
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.OutlinedTextField
+
 
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -86,7 +89,16 @@ fun PantallaRutas(viewModel: RutaViewModel, navController: NavController) {
                         OutlinedTextField(
                             value = nuevoNombreRuta,
                             onValueChange = { nuevoNombreRuta = it },
-                            label = { Text("Nombre de la ruta") },
+                            label = {
+                                Text("Nombre de la ruta",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.White
+                            ) },
+                            colors = TextFieldDefaults.colors(
+                                focusedTextColor = MaterialTheme.colorScheme.primary,
+                                unfocusedTextColor = MaterialTheme.colorScheme.primary,
+                            ),
+
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 8.dp)
@@ -100,7 +112,12 @@ fun PantallaRutas(viewModel: RutaViewModel, navController: NavController) {
                                 readOnly = true,
                                 value = categoriaSeleccionada ?: "Selecciona categoría",
                                 onValueChange = {},
-                                label = { Text("Categoría") },
+                                label = {
+                                    Text("Nombre de la ruta",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.White
+
+                                ) },
                                 trailingIcon = {
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDropdown)
                                 },
