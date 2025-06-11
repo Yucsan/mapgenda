@@ -242,6 +242,8 @@ fun PantallaMapaUbicacion(
             ) {
                 Icon(Icons.Default.MyLocation, contentDescription = "Mi ubicación")
             }
+
+
         }
 
 

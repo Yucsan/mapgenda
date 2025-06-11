@@ -18,13 +18,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.google.android.gms.maps.model.Polyline
+import com.yucsan.mapgendafernandochang2025.R
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
 import com.yucsan.mapgendafernandochang2025.util.CloudinaryUploader
 import com.yucsan.mapgendafernandochang2025.viewmodel.AuthViewModel
@@ -157,7 +160,25 @@ fun DetalleLugarDialog(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("Sin imagen", color = Color.Gray)
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ){
+                                Image(
+                                    painter = painterResource(id = R.drawable.sinfoto),
+                                    contentDescription = "Imagen no disponible",
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.size(150.dp),
+                                    colorFilter = ColorFilter.tint(Color.Black)
+                                )
+                                Text(
+                                    text = "Sin imagen disponible",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.Black,
+                                    modifier = Modifier.padding(vertical = 5.dp)
+                                )
+                            }
+
                         }
                     }
                 }
@@ -176,17 +197,16 @@ fun DetalleLugarDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
+
                         OutlinedButton(
                             onClick = { pickImageLauncher.launch(arrayOf("image/*")) },
                             modifier = Modifier
-                                .weight(1f)
-                                .padding(end = 8.dp)
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp),
+                                shape = MaterialTheme.shapes.medium
                         ) {
-                            Text("Cambiar foto")
+                            Text("Cambiar foto",
+                                modifier = Modifier.padding(vertical= 8.dp))
                         }
 
                         Button(
@@ -250,12 +270,15 @@ fun DetalleLugarDialog(
                             },
                             enabled = hayCambios,
                             modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 8.dp)
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp),
+                                shape = MaterialTheme.shapes.medium
+
                         ) {
-                            Text("Guardar cambios")
+                            Text("Guardar cambios",
+                                modifier = Modifier.padding(vertical= 8.dp))
                         }
-                    }
+
                 } else {
                     Text("📍 Dirección: ${lugar.direccion}")
                     lugar.rating?.let { Text("⭐️ Rating: $it") }

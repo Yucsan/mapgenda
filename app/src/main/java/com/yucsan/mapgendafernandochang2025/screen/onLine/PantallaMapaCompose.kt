@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
@@ -29,6 +30,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
+import com.yucsan.mapgendafernandochang2025.R
 import com.yucsan.mapgendafernandochang2025.ThemeViewModel
 import com.yucsan.mapgendafernandochang2025.componentes.cajasTexto.InputDireccionBox
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
@@ -406,7 +408,7 @@ fun PantallaMapaCompose(
                     .align(Alignment.BottomEnd),
             ) {
 
-                FloatingActionButton(
+                SmallFloatingActionButton(
                     shape = CircleShape,
                     containerColor = MaterialTheme.colorScheme.primary,
                     onClick = {
@@ -427,7 +429,7 @@ fun PantallaMapaCompose(
 
 
                 if (!modoAgregarLugar) {
-                    FloatingActionButton(
+                    SmallFloatingActionButton(
                         shape = CircleShape,
                         containerColor = MaterialTheme.colorScheme.primary,
                         onClick = {
@@ -437,7 +439,7 @@ fun PantallaMapaCompose(
                     }
                 }
 
-                FloatingActionButton(
+                SmallFloatingActionButton(
                     shape = CircleShape,
                     containerColor = MaterialTheme.colorScheme.primary,
                     onClick = {
@@ -452,10 +454,31 @@ fun PantallaMapaCompose(
                     }) {
                     Text("+")
                 }
+
+                SmallFloatingActionButton(
+                    shape = CircleShape,
+                    containerColor = Color(0xFFF5881F),
+                    onClick = {
+                        navController.navigate("mapaubi?modoSeleccionUbicacion=false")
+                    }
+                ) {
+                    Text("Ruta")
+                }
+
+                // Nuevo botón flotante verde para seleccionar ubicación
+                SmallFloatingActionButton(
+                    onClick = {
+                        navController.navigate("mapaSeleccionUbicacion")
+                    },
+                    containerColor = Color.Gray,
+                    contentColor = Color.White,
+                ) {
+                    Text("ubi")
+                }
             }
 
             // Botón pequeño inferior izquierdo
-            FloatingActionButton(
+            SmallFloatingActionButton(
                 onClick = { themeViewModel.toggleTheme() },
                 modifier = Modifier
                     .size(48.dp)
@@ -470,6 +493,8 @@ fun PantallaMapaCompose(
                     tint = Color.White
                 )
             }
+
+
 
             if (cargando) {
                 LinearProgressIndicator(Modifier
