@@ -95,4 +95,9 @@ class AuthViewModel(
             .remove("jwt_token")
             .apply()
     }
+
+    fun getTokenSeguro(context: Context): String? {
+        return obtenerToken(context)
+    }
+
 }

@@ -143,7 +143,7 @@ fun PantallaListadoLugares(
 
             Text(
                 text = "Listado de lugares",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -293,8 +293,7 @@ fun ListadoLugarItem(
             ) {
                 Text(
                     text = lugar.nombre,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleMedium
                 )
                 Text(
                     text = lugar.direccion ?: "",

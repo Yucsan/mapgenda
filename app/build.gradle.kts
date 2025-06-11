@@ -73,7 +73,7 @@ dependencies {
     // Data Binding y Navigation
     implementation(libs.androidx.databinding.adapters)
     implementation(libs.androidx.navigation.runtime.android)
-    implementation(libs.androidx.navigation.compose)
+    //implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.media3.common.ktx)
     implementation(libs.androidx.benchmark.macro)
     implementation(libs.androidx.media3.datasource)
@@ -119,7 +119,7 @@ dependencies {
     // Google Maps y ubicación
     //noinspection GradleCompatible
     implementation("com.google.android.gms:play-services-maps:18.2.0")
-    implementation("com.google.android.gms:play-services-location:21.0.1")
+    //implementation("com.google.android.gms:play-services-location:21.0.1")
 
 // Retrofit + Gson
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
@@ -140,14 +140,18 @@ dependencies {
 
     implementation("com.google.android.gms:play-services-auth:20.7.0")
 
-    implementation(libs.maps.compose)
-    implementation(libs.maps.sdk)
+    //implementation(libs.maps.compose)
+    //implementation(libs.maps.sdk)
 
     implementation("androidx.compose.material3:material3:1.1.2") // o superior
 
     implementation("com.google.android.gms:play-services-auth:20.7.0")
 
     implementation("com.cloudinary:cloudinary-android:2.3.1")
+
+    implementation(libs.navigation.fragment.ktx)
+    implementation(libs.navigation.ui.ktx)
+    implementation(libs.navigation.compose)
 
 
 

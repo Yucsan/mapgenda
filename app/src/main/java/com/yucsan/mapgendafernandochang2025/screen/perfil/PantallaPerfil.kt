@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
@@ -33,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
@@ -127,7 +129,7 @@ fun PantallaPerfil(viewModel: LugarViewModel,
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Perfil") },
+                    title = { Text("Perfil", style = MaterialTheme.typography.headlineMedium ) },
                     modifier = Modifier.height(55.dp),
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
@@ -163,17 +165,17 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
-                    item {
-                        Text("Perfil de Usuario", style = MaterialTheme.typography.headlineSmall)
-                        Spacer(modifier = Modifier.height(20.dp))
-                    }
+
+
+
 
                     if (usuario != null) {
                         item {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Spacer(modifier = Modifier.height(40.dp))
                                 Box(
                                     modifier = Modifier
-                                        .size(140.dp)
+                                        .size(180.dp)
                                         .clip(CircleShape)
                                         .border(2.dp, Color.Gray, CircleShape),
                                     contentAlignment = Alignment.Center
@@ -193,15 +195,44 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                                 }
 
                                 Spacer(modifier = Modifier.height(16.dp))
-                                OutlinedButton(
-                                    onClick = { pickImageLauncher.launch(arrayOf("image/*")) },
-                                    modifier = Modifier.height(40.dp).fillMaxWidth(),
-                                    shape = MaterialTheme.shapes.medium
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp) // separación entre botones
                                 ) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Editar")
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Cambiar foto")
+                                    OutlinedButton(
+                                        onClick = { pickImageLauncher.launch(arrayOf("image/*")) },
+                                        modifier = Modifier
+                                            .weight(0.7f)
+                                            .height(40.dp)
+                                            .fillMaxWidth(),
+                                        shape = MaterialTheme.shapes.medium
+                                    ) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Editar")
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Cambiar foto")
+                                    }
+
+
+                                    Button(
+                                        onClick = {
+                                            usuario?.id?.let {
+                                                usuarioViewModel.refrescarUsuarioDesdeApi(
+                                                    UUID.fromString(
+                                                        it
+                                                    )
+                                                )
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth().weight(0.2f).height(40.dp),
+                                        shape = MaterialTheme.shapes.medium
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Cached, contentDescription = "Actualizar")
+                                    }
                                 }
+
                             }
                         }
 
@@ -215,11 +246,11 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                                                 val uri = Uri.parse(uriString)
                                                 isUploading = true
                                                 try {
-                                                    val secureUrl =
-                                                        CloudinaryUploader.subirImagenDesdeUri(
-                                                            context,
-                                                            uri
-                                                        )
+                                                    val urlAnterior = usuario!!.fotoPerfilUri
+                                                    val jwt = authViewModel.getTokenSeguro(context)
+
+                                                    val secureUrl = CloudinaryUploader.subirImagenDesdeUri(context, uri)
+
                                                     if (secureUrl != null) {
                                                         val actualizado = usuario!!.copy(fotoPerfilUri = secureUrl)
                                                         usuarioViewModel.guardarUsuario(actualizado)
@@ -229,25 +260,26 @@ fun PantallaPerfil(viewModel: LugarViewModel,
 
                                                         nuevaFotoUri = null
 
-                                                        // ✅ Confirmación visual
-                                                        Toast.makeText(
-                                                            context,
-                                                            "✅ Imagen subida con éxito",
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
+                                                        Toast.makeText(context, "✅ Imagen subida con éxito", Toast.LENGTH_SHORT).show()
+
+                                                        // 🧹 Eliminar imagen anterior desde backend
+                                                        if (!urlAnterior.isNullOrBlank() && !jwt.isNullOrBlank()) {
+                                                            val publicId = CloudinaryUploader.extraerPublicIdDesdeUrl(urlAnterior)
+                                                            if (!publicId.isNullOrBlank()) {
+                                                                val eliminado = CloudinaryUploader.eliminarImagenDesdeBackend(publicId, jwt)
+                                                                Log.d("Perfil", "🧹 Resultado de eliminación: $eliminado")
+                                                            } else {
+                                                                Log.w("Perfil", "⚠️ No se pudo extraer public_id desde $urlAnterior")
+                                                            }
+                                                        } else {
+                                                            Log.w("Perfil", "⚠️ No se puede eliminar imagen: faltan datos previos o JWT")
+                                                        }
                                                     } else {
-                                                        Toast.makeText(
-                                                            context,
-                                                            "❌ Error: URL nula",
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
+                                                        Toast.makeText(context, "❌ Error: URL de Cloudinary nula", Toast.LENGTH_SHORT).show()
                                                     }
                                                 } catch (e: Exception) {
-                                                    Toast.makeText(
-                                                        context,
-                                                        "⚠️ Error al subir imagen: ${e.message}",
-                                                        Toast.LENGTH_LONG
-                                                    ).show()
+                                                    Log.e("Perfil", "❌ Error inesperado: ${e.message}", e)
+                                                    Toast.makeText(context, "⚠️ Error: ${e.message}", Toast.LENGTH_LONG).show()
                                                 } finally {
                                                     isUploading = false
                                                 }
@@ -262,22 +294,12 @@ fun PantallaPerfil(viewModel: LugarViewModel,
 
 
 
+
+
                             }
                         }
 
                         item {
-
-
-                            Button(onClick = {
-                                usuario?.id?.let {
-                                    usuarioViewModel.refrescarUsuarioDesdeApi(UUID.fromString(it))
-                                }
-                            },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.medium
-                                ) {
-                                Text("🔄 Actualizar foto desde API")
-                            }
 
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
@@ -288,32 +310,32 @@ fun PantallaPerfil(viewModel: LugarViewModel,
                                 Text(buildAnnotatedString {
                                     withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Nombre: ") }
                                     append(usuario?.nombre ?: "Desconocido")
-                                })
+                                },fontSize = 20.sp, modifier = Modifier.padding(vertical = 4.dp))
 
                                 Text(buildAnnotatedString {
                                     withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Email: ") }
                                     append(usuario?.email ?: "Desconocido")
-                                })
+                                },fontSize = 20.sp, modifier = Modifier.padding(vertical = 4.dp))
 
                                 Text(buildAnnotatedString {
                                     withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Rol: ") }
                                     append(usuario?.rol ?: "Desconocido")
-                                })
+                                },fontSize = 20.sp, modifier = Modifier.padding(vertical = 4.dp) )
 
                                 Text(buildAnnotatedString {
                                     withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("País: ") }
                                     append(usuario?.pais ?: "No especificado")
-                                })
+                                },fontSize = 20.sp, modifier = Modifier.padding(vertical = 4.dp))
 
                                 Text(buildAnnotatedString {
                                     withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Ciudad: ") }
                                     append(usuario?.ciudad ?: "No especificado")
-                                })
+                                },fontSize = 20.sp, modifier = Modifier.padding(vertical = 4.dp))
 
                                 Text(buildAnnotatedString {
                                     withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) { append("Verificado: ") }
                                     append(if (usuario?.verificado == true) "Sí" else "No")
-                                })
+                                },fontSize = 20.sp, modifier = Modifier.padding(vertical = 4.dp))
                             }
                             Spacer(modifier = Modifier.height(24.dp))
 

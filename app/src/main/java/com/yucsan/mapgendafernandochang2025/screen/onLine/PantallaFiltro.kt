@@ -127,7 +127,7 @@ fun PantallaFiltro(
                     Text(
                         text = "Filtro Mapa OnLine",
                         color = MaterialTheme.colorScheme.secondary,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.headlineMedium
                     )
                 }
             }

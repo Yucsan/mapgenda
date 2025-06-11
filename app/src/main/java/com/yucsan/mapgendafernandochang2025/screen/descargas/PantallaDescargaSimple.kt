@@ -3,10 +3,14 @@ package com.yucsan.mapgendafernandochang2025.screen.descargas
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.Log
@@ -47,8 +51,10 @@ fun PantallaDescargaSimple(viewModel: LugarViewModel, ubicacionViewModel: Ubicac
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        BotonAccion(
+            texto = "Sube data la Nube",
+            icono = Icons.Default.ArrowUpward) {
 
-        BotonAccion(texto = "Sube data la Nube") {
             CoroutineScope(Dispatchers.IO).launch {
                 viewModel.sincronizarLugaresConApi()
                 ubicacionViewModel.sincronizarConApi(context)
@@ -56,15 +62,16 @@ fun PantallaDescargaSimple(viewModel: LugarViewModel, ubicacionViewModel: Ubicac
             }
         }
 
-        BotonAccion(texto = "Descargar data de la Nube") {
+        BotonAccion(
+            texto = "Descargar data de la Nube",
+            icono = Icons.Default.ArrowDownward
+        ) {
             CoroutineScope(Dispatchers.IO).launch {
                 viewModel.descargarLugaresDesdeBackend(context)
                 ubicacionViewModel.descargarUbicaciones(context)
                 rutaViewModel.descargarRutasDesdeBackend(context)
             }
         }
-
-
 
         if (cargando) {
             Spacer(modifier = Modifier.height(24.dp))
@@ -82,7 +89,10 @@ fun PantallaDescargaSimple(viewModel: LugarViewModel, ubicacionViewModel: Ubicac
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         ) {
-            Text("🗑️ Borrar base de datos", color = MaterialTheme.colorScheme.onError)
+            Text("🗑️ Borrar base de datos",
+                color = MaterialTheme.colorScheme.onError,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
         }
 
         if (mostrarDialogoBorrar) {
@@ -100,20 +110,28 @@ fun PantallaDescargaSimple(viewModel: LugarViewModel, ubicacionViewModel: Ubicac
     }
 }
 
+
+
 @Composable
-fun BotonAccion(texto: String, onClick: () -> Unit) {
+fun BotonAccion(texto: String, icono: ImageVector, onClick: () -> Unit) {
     Button(
         onClick = onClick,
-        shape = MaterialTheme.shapes.medium, // borde un poco cuadrado
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
     ) {
+        Icon(
+            imageVector = icono,
+            contentDescription = null,
+            modifier = Modifier.padding(end = 8.dp)
+        )
         Text(
             text = texto,
             modifier = Modifier.padding(vertical = 8.dp)
         )
     }
 }
+
 
 

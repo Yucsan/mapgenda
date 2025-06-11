@@ -1,7 +1,6 @@
 package com.yucsan.mapgendafernandochang2025.screen.offLine
 
 
-
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,7 +31,12 @@ fun PantallaUbicaciones(viewModel: UbicacionViewModel, navController: NavControl
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Gestion Ubicaciones") },
+                title = {
+                    Text(
+                        "Gestion Ubicaciones",
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
@@ -44,7 +48,15 @@ fun PantallaUbicaciones(viewModel: UbicacionViewModel, navController: NavControl
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(top = padding.calculateTopPadding(), start = 12.dp, end = 12.dp).fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .padding(
+                    top = padding.calculateTopPadding(),
+                    start = 12.dp,
+                    end = 12.dp
+                )
+                .fillMaxSize()
+        ) {
             OutlinedTextField(
                 value = query,
                 onValueChange = { viewModel.actualizarQuery(it) },
@@ -57,7 +69,9 @@ fun PantallaUbicaciones(viewModel: UbicacionViewModel, navController: NavControl
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(ubicaciones) { ubicacion ->
                     Card(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
                         elevation = CardDefaults.cardElevation(4.dp)
                     ) {
                         Row(
@@ -77,7 +91,11 @@ fun PantallaUbicaciones(viewModel: UbicacionViewModel, navController: NavControl
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 Text(
-                                    "Lat: ${ubicacion.latitud}, Lng: ${ubicacion.longitud}",
+                                    "Lat: ${ubicacion.latitud}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Text(
+                                    "Lng: ${ubicacion.longitud}",
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }

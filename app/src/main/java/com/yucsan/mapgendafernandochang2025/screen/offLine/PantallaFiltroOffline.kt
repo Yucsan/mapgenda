@@ -153,7 +153,7 @@ fun PantallaFiltroOffline(
                             Text(
                                 text = "Filtro Mapa Offline",
                                 color =  MaterialTheme.colorScheme.secondary ,
-                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                style = MaterialTheme.typography.headlineMedium
 
                             )
                         }

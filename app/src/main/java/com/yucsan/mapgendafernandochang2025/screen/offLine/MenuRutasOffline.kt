@@ -1,6 +1,8 @@
 package com.yucsan.mapgendafernandochang2025.screen.offLine
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -8,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -17,9 +20,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import com.yucsan.mapgendafernandochang2025.R
 
 @Composable
 fun MenuRutaOffline(
@@ -58,12 +69,37 @@ fun MenuRutaOffline(
             navController.navigate("ubicaciones")
         }
 
-        BotonOfflineAccion(
-            texto = "Crear Rutas Offline",
-            colorFondo = buttonColor
+
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
-            navController.navigate("mapaubi?modoSeleccionUbicacion=false")
+            Image(
+                painter = painterResource(id = R.drawable.vuelo),
+                contentDescription = "Mapa del mundo con avión",
+                modifier = Modifier
+                    .size(200.dp)
+                    .clickable {
+                        navController.navigate("mapaubi?modoSeleccionUbicacion=false")
+                    }
+                    .padding(8.dp),
+                contentScale = ContentScale.Fit
+            )
+
+            Text(
+                text = "Mapa Rutas",
+                style = TextStyle(
+                    fontFamily = FontFamily(Font(R.font.roboto)), // Asegúrate de tener roboto_regular.ttf en res/font
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Normal
+                )
+            )
         }
+
+
 
         BotonOfflineAccion(
             texto = "Gestión de Rutas",
@@ -73,7 +109,7 @@ fun MenuRutaOffline(
         }
 
         BotonOfflineAccion(
-            texto = "🗺️ Ver Lugares por Zonas"
+            texto = "Gestión de Lugares"
         ) {
             lugarViewModel.agruparLugaresPorZona()
             navController.navigate("listalugares")
@@ -99,7 +135,10 @@ fun BotonOfflineAccion(
         Text(
             text = texto,
             color = Color.White,
-            modifier = Modifier.padding(vertical = 4.dp)
+            modifier = Modifier.padding(vertical = 4.dp),
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontWeight = FontWeight.Bold
+            )
         )
     }
 }
