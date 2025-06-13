@@ -171,6 +171,16 @@ fun PantallaMapaOffline(
         }
     }
 
+    LaunchedEffect(Unit) {
+        lugarRutaOfflineViewModel.lugaresOffline.collect { lista ->
+            Log.d("MAPA_LUGARES", "📍 lugaresOffline actualizados (${lista.size})")
+            lista.forEach { l ->
+                Log.d("MAPA_LUGARES", "✅ ${l.nombre} | ${l.subcategoria} | ${l.id}")
+            }
+        }
+    }
+
+
     LaunchedEffect(lugaresSeleccionadosParaRuta.size) {
         if (lugaresSeleccionadosParaRuta.isNotEmpty()) {
             scope.launch {
@@ -666,39 +676,33 @@ fun PantallaMapaOffline(
                                     subcategoria = subcategoria
                                 )
 
-                                // Guardar con categorías seguras
+                                // Guardar el lugar
                                 lugarViewModel.agregarLugar(lugarConFallback)
 
-                                // Forzar filtros para asegurar aparición inmediata
-                                lugarViewModel.actualizarCategorias(setOf(categoriaPadre))
-                                lugarViewModel.actualizarFiltrosActivos(setOf(subcategoria))
+                                // 🔥 FORZAR RECARGA COMPLETA
+                                scope.launch {
+                                    // Pequeña espera para asegurar que se guardó
+                                    kotlinx.coroutines.delay(300)
 
-                                // Forzar recarga tras agregar
-                                lugarViewModel.recargarLugares()
+                                    // Obtener ubicación actual para reaplicar filtros
+                                    val centroActual = ubicacionSeleccionada ?: LatLng(
+                                        lugarConFallback.latitud,
+                                        lugarConFallback.longitud
+                                    )
 
-                                // Guardar una referencia local al latLng antes de establecerlo como null
-                                val latLngGuardado = latLngSeleccionado
+                                    // Incluir la nueva subcategoría en los filtros activos
+                                    val filtrosActualizados = lugarRutaOfflineViewModel.filtrosActivos.value.toMutableSet()
+                                    filtrosActualizados.add(subcategoria)
 
-                                // Agregar marcador al mapa
-                                googleMap?.let { map ->
-                                    scope.launch {
-                                        latLngGuardado?.let { latLng ->
-                                            val drawableRes = getDrawableForCategoria(categoriaPadre)
-                                            val icono = generarIconoConTextoSobreImagen(context, lugarConFallback.nombre, drawableRes)
-                                            
-                                            map.addMarker(
-                                                com.google.android.gms.maps.model.MarkerOptions()
-                                                    .position(latLng)
-                                                    .title(lugarConFallback.nombre)
-                                                    .icon(icono)
-                                            )
-                                            
-                                            // Centrar la cámara en el nuevo marcador
-                                            map.animateCamera(
-                                                CameraUpdateFactory.newLatLngZoom(latLng, 15f)
-                                            )
-                                        }
-                                    }
+                                    // Reaplicar filtros con el nuevo lugar incluido
+                                    lugarRutaOfflineViewModel.aplicarFiltroManualConParametros(
+                                        subcategorias = filtrosActualizados.toList(),
+                                        centro = centroActual,
+                                        radio = lugarRutaOfflineViewModel.distanciaSeleccionada.value
+                                    )
+
+                                    // Mensaje de confirmación
+                                    Toast.makeText(context, "✅ Lugar agregado y disponible para rutas", Toast.LENGTH_SHORT).show()
                                 }
 
                                 latLngSeleccionado = null
@@ -713,6 +717,7 @@ fun PantallaMapaOffline(
                             guardarCamara = { camara -> mapViewModel.guardarCamara(camara) }
                         )
                     }
+
 
                     if (mostrarDialogoGuardar.value && ubicacionSeleccionada != null) {
                         EditarUbicacionDialog(

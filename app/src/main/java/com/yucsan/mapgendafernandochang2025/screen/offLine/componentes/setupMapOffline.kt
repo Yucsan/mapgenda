@@ -7,6 +7,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.MarkerOptions
 
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
 import com.yucsan.mapgendafernandochang2025.entidad.UbicacionLocal
@@ -37,7 +38,9 @@ fun setupMapOffline(
             }
 
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(ubicacionCentro, zoomLevel))
-            map.addMarker(com.google.android.gms.maps.model.MarkerOptions().position(ubicacionCentro).title("Ubicación seleccionada"))
+            map.addMarker(
+                MarkerOptions().position(ubicacionCentro).title("Ubicación seleccionada")
+            )
             Log.d("MAPA_OFFLINE", "📍 Mapa centrado en ubicación manual: $ubicacionCentro")
         } else {
             Log.w("MAPA_OFFLINE", "⚠️ No se proporcionó ubicaciónCentro; el mapa no se centrará.")
@@ -45,23 +48,28 @@ fun setupMapOffline(
 
         // ⬇️ Pintar ubicaciones
         ubicaciones.forEach { ubi ->
-            MapPainter.pintarUbicacion(context, map, ubi)
+            val marker = MapPainter.pintarUbicacion(context, map, ubi)
+            marker.tag = ubi // 💡 Aquí sí se guarda el objeto completo
         }
 
-        // ⬇️ Pintar lugares con íconos o números si están en la ruta
+        // ⬇️ Pintar lugares
         lugares.forEach { lugar ->
             val index = lugaresSeleccionados.indexOfFirst {
                 it.latitud == lugar.latitud && it.longitud == lugar.longitud
             }.takeIf { it != -1 }
 
             val marker = MapPainter.pintarLugar(context, map, lugar, index)
-            marker.tag = lugar.id
+            marker?.tag = lugar // 💥 GUARDAMOS EL OBJETO ENTERO, no solo el ID
+
+            if (marker == null) {
+                Log.e("MAPA_MARKER", "❌ No se pudo crear marker para: ${lugar.nombre}")
+            }
         }
 
-        // ⬇️ Dibujar polilínea si hay al menos dos
+        // ⬇️ Dibujar polilínea
         MapPainter.pintarPolylineRuta(map, lugaresSeleccionados)
 
-        // ⬇️ Ajustar cámara a los lugares visibles si se indica
+        // ⬇️ Ajustar cámara
         if (centrarCamara && lugares.isNotEmpty()) {
             val builder = LatLngBounds.Builder()
             lugares.forEach { builder.include(LatLng(it.latitud, it.longitud)) }
@@ -79,3 +87,4 @@ fun setupMapOffline(
         Log.e("MAPA", "Error al obtener ubicación o pintar mapa", e)
     }
 }
+

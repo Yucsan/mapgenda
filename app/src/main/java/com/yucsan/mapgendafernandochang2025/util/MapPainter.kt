@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.util.Log
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.*
 import com.yucsan.mapgendafernandochang2025.entidad.LugarLocal
@@ -22,7 +23,7 @@ object MapPainter {
         map: GoogleMap,
         lugar: LugarLocal,
         index: Int? = null
-    ): Marker {
+    ): Marker? {
         val drawableRes = when (lugar.categoriaGeneral) {
             "restaurant" -> R.drawable.restaurant
             "cafe" -> R.drawable.cafe
@@ -42,22 +43,34 @@ object MapPainter {
             else -> R.drawable.custom
         }
 
-        val icono = if (index != null) {
-            IconosMapa.generarIconoNumerado(context, index + 1)
-        } else {
-            generarIconoConTextoSobreImagen(context, lugar.nombre, drawableRes)
+        val icono: BitmapDescriptor? = try {
+            if (index != null) {
+                IconosMapa.generarIconoNumerado(context, index + 1)
+            } else {
+                generarIconoConTextoSobreImagen(context, lugar.nombre, drawableRes)
+            }
+        } catch (e: Exception) {
+            Log.e("MAPA_ICONO", "❌ Error al generar icono para ${lugar.nombre}: ${e.message}")
+            null
         }
 
-        val marker = map.addMarker(
-            MarkerOptions()
+        return try {
+            val options = MarkerOptions()
                 .position(LatLng(lugar.latitud, lugar.longitud))
                 .title(lugar.nombre)
                 .snippet(lugar.direccion)
-                .icon(icono)
-        )
 
-        marker?.tag = lugar.id
-        return marker!!
+            if (icono != null) {
+                options.icon(icono)
+            }
+
+            val marker = map.addMarker(options)
+            marker?.tag = lugar.id
+            marker
+        } catch (e: Exception) {
+            Log.e("MAPA_MARKER", "❌ Error al agregar marker para ${lugar.nombre}: ${e.message}")
+            null
+        }
     }
 
     fun pintarUbicacion(

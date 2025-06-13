@@ -98,6 +98,7 @@ fun MapaOfflineView(
                     setupMapOffline(context, map, lugaresFiltrados, distancia, ubicacionCentro)
                 }
 
+
                 // ✅ Mostrar botón de ubicación si hay permisos
 
                 if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) ==
@@ -145,9 +146,7 @@ fun MapaOfflineView(
                 map.setOnMarkerClickListener { marker ->
                     if (isSoloLectura) return@setOnMarkerClickListener false
 
-                    val lugarId = marker.tag as? String
-                    val lugar = lugares.find { it.id == lugarId }
-
+                    val lugar = marker.tag as? LugarLocal
                     val ubicacion = marker.tag as? UbicacionLocal
 
                     if (modoCrearRuta) {
@@ -157,8 +156,7 @@ fun MapaOfflineView(
                                 marker.setIcon(IconosMapa.seleccionado(context))
                                 Log.d("MAPA_RUTA", "📍 Lugar agregado: ${lugar.nombre}")
                             }
-                            marker.tag is UbicacionLocal -> {
-                                val ubicacion = marker.tag as UbicacionLocal
+                            ubicacion != null -> {
                                 val lugarDesdeUbicacion = ubicacion.toLugarLocalParaRuta()
                                 if (!lugaresSeleccionadosParaRuta.any { it.id == lugarDesdeUbicacion.id }) {
                                     lugaresSeleccionadosParaRuta.add(lugarDesdeUbicacion)
@@ -171,10 +169,10 @@ fun MapaOfflineView(
                         if (lugar != null) onLugarSeleccionado(lugar)
                     }
 
-
                     marker.showInfoWindow()
                     false
                 }
+
 
                 mapViewModel.camaraGuardada?.let {
                     map.moveCamera(CameraUpdateFactory.newCameraPosition(it))

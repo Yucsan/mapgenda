@@ -209,6 +209,7 @@ class LugarRutaOfflineViewModel(application: Application) : AndroidViewModel(app
             repository.obtenerTodos().collect {
                 _todosLosLugares.value = it
                 Log.d("LugarViewModel", "📦 Todos los lugares: ${it.size}")
+                it.forEach { lugar -> Log.d("LugarViewModel", "👉 ${lugar.nombre} - ${lugar.subcategoria}") }
             }
         }
     }

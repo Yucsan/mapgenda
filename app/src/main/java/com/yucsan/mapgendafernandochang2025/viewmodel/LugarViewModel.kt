@@ -776,6 +776,7 @@ class LugarViewModel(
                 _ultimaCategoriaAgregada.value = lugar.categoriaGeneral
                 _ultimaSubcategoriaAgregada.value = lugar.subcategoria
 
+                Log.d("AGREGAR_LUGAR", "✅ Lugar agregado: ${lugar.nombre} - ${lugar.subcategoria} @ ${lugar.latitud}, ${lugar.longitud}")
 
             } catch (e: Exception) {
                 _estadoGuardado.value = false

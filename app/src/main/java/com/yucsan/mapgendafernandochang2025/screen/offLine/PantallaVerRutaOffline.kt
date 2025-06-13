@@ -127,7 +127,9 @@ fun PantallaVerRutaOffline(
             )
 
             TopAppBar(
-                title = { Text(ruta.ruta.nombre) },
+                title = {
+                    Text( ruta.ruta.nombre,
+                        style =  MaterialTheme.typography.headlineMedium ) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")

@@ -95,8 +95,13 @@ fun PantallaRutas(viewModel: RutaViewModel, navController: NavController) {
                                     color = Color.White
                             ) },
                             colors = TextFieldDefaults.colors(
-                                focusedTextColor = MaterialTheme.colorScheme.primary,
-                                unfocusedTextColor = MaterialTheme.colorScheme.primary,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.White,
+                                unfocusedIndicatorColor = Color.White,
                             ),
 
                             modifier = Modifier
@@ -118,6 +123,13 @@ fun PantallaRutas(viewModel: RutaViewModel, navController: NavController) {
                                     color = Color.White
 
                                 ) },
+                                colors = TextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    disabledContainerColor = Color.Transparent,
+                                ),
                                 trailingIcon = {
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDropdown)
                                 },
@@ -283,7 +295,7 @@ fun PantallaRutas(viewModel: RutaViewModel, navController: NavController) {
                     Text(
                         text = "Bitacora de Rutas",
                         color =  MaterialTheme.colorScheme.secondary ,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.headlineMedium
 
                     )
                 }
