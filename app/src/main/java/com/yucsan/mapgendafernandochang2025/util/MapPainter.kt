@@ -24,23 +24,37 @@ object MapPainter {
         lugar: LugarLocal,
         index: Int? = null
     ): Marker? {
-        val drawableRes = when (lugar.categoriaGeneral) {
-            "restaurant" -> R.drawable.restaurant
-            "cafe" -> R.drawable.cafe
-            "clothing_store" -> R.drawable.shop
-            "park" -> R.drawable.tree
-            "tourist_attraction" -> R.drawable.turistatraction
-            "museum" -> R.drawable.museum
-            "art_gallery" -> R.drawable.art_galery
-            "aquarium" -> R.drawable.acuario
-            "stadium" -> R.drawable.estadio
-            "night_club" -> R.drawable.night_club
-            "movie_theater" -> R.drawable.cine
-            "casino" -> R.drawable.casino
-            "lodging" -> R.drawable.hotel
-            "bus_station", "train_station", "subway_station" -> R.drawable.bus
-            "custom" -> R.drawable.custom
-            else -> R.drawable.custom
+        val drawableRes = when (lugar.categoriaGeneral?.lowercase()) {
+            "restaurant", "food", "meal_delivery", "meal_takeaway" -> R.drawable.restaurant
+            "cafe", "bakery" -> R.drawable.cafe
+            "clothing_store", "store", "shopping_mall", "supermarket" -> R.drawable.shop
+            "park", "natural_feature", "point_of_interest" -> R.drawable.tree
+            "tourist_attraction", "landmark" -> R.drawable.turistatraction
+            "museum", "art_gallery", "aquarium" -> R.drawable.museum
+            "stadium", "gym", "sports_complex" -> R.drawable.estadio
+            "night_club", "bar", "liquor_store" -> R.drawable.night_club
+            "movie_theater", "cinema" -> R.drawable.cine
+            "casino", "amusement_park" -> R.drawable.casino
+            "lodging", "hotel", "motel" -> R.drawable.hotel
+            "bus_station", "train_station", "subway_station", "transit_station" -> R.drawable.bus
+            "custom", "point_of_interest" -> R.drawable.custom
+            else -> {
+                // Intentar determinar la categoría basada en los tipos
+                when {
+                    lugar.tipos?.any { it.contains("food", ignoreCase = true) } == true -> R.drawable.restaurant
+                    lugar.tipos?.any { it.contains("cafe", ignoreCase = true) } == true -> R.drawable.cafe
+                    lugar.tipos?.any { it.contains("store", ignoreCase = true) } == true -> R.drawable.shop
+                    lugar.tipos?.any { it.contains("park", ignoreCase = true) } == true -> R.drawable.tree
+                    lugar.tipos?.any { it.contains("museum", ignoreCase = true) } == true -> R.drawable.museum
+                    lugar.tipos?.any { it.contains("stadium", ignoreCase = true) } == true -> R.drawable.estadio
+                    lugar.tipos?.any { it.contains("night", ignoreCase = true) } == true -> R.drawable.night_club
+                    lugar.tipos?.any { it.contains("movie", ignoreCase = true) } == true -> R.drawable.cine
+                    lugar.tipos?.any { it.contains("casino", ignoreCase = true) } == true -> R.drawable.casino
+                    lugar.tipos?.any { it.contains("hotel", ignoreCase = true) } == true -> R.drawable.hotel
+                    lugar.tipos?.any { it.contains("station", ignoreCase = true) } == true -> R.drawable.bus
+                    else -> R.drawable.custom
+                }
+            }
         }
 
         val icono: BitmapDescriptor? = try {
