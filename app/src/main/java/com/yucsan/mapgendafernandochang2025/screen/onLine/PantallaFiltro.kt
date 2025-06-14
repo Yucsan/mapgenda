@@ -34,6 +34,7 @@ import com.yucsan.mapgendafernandochang2025.componentes.Ruta
 import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
 import com.google.android.gms.maps.model.LatLng
+import com.yucsan.mapgendafernandochang2025.componentes.navegacion.BottomBarScreen
 import com.yucsan.mapgendafernandochang2025.entidad.UbicacionLocal
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -314,6 +315,46 @@ fun PantallaFiltro(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Buscar lugares")
+                }
+
+
+            }
+
+            item {
+                val hayLugares = categoriasPorGrupo.values.flatten()
+                    .any { subcat -> (conteoPorSubcategoria[subcat] ?: 0) > 0 }
+
+                if (!hayLugares) {
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "😕 No hay sitios descargados para esta ubicación.",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+
+                        Button(
+                            onClick = {
+                                navController.navigate(BottomBarScreen.Descargas.route) {
+                                    // popUpTo al principio de tu grafo, para restaurar estados como haces en el bottom-nav
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("Ir a descargas")
+                        }
+                    }
                 }
             }
 
