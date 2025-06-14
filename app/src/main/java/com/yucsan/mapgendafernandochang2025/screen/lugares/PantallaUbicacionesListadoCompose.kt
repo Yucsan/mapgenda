@@ -238,15 +238,59 @@ fun PantallaListadoLugares(
 
                 if (lugaresFiltradosPorTexto.isNotEmpty()) {
                     item {
-                        Text(
-                            text = "$subcat (${lugaresFiltradosPorTexto.size})",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp),
-                            fontWeight = FontWeight.Bold
-                        )
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "$subcat (${lugaresFiltradosPorTexto.size})",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                            
+                            var mostrarDialogoBorrado by remember { mutableStateOf(false) }
+                            
+                            IconButton(
+                                onClick = { mostrarDialogoBorrado = true }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Borrar categoría",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                            
+                            if (mostrarDialogoBorrado) {
+                                AlertDialog(
+                                    onDismissRequest = { mostrarDialogoBorrado = false },
+                                    title = { Text("Borrar categoría") },
+                                    text = { Text("¿Estás seguro de que deseas borrar todos los lugares de la categoría '$subcat'? Esta acción no se puede deshacer.") },
+                                    confirmButton = {
+                                        TextButton(
+                                            onClick = {
+                                                lugaresFiltradosPorTexto.forEach { lugar ->
+                                                    lugarViewModel.eliminarLugar(lugar.id)
+                                                }
+                                                mostrarDialogoBorrado = false
+                                            }
+                                        ) {
+                                            Text("Borrar", color = MaterialTheme.colorScheme.error)
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(
+                                            onClick = { mostrarDialogoBorrado = false }
+                                        ) {
+                                            Text("Cancelar")
+                                        }
+                                    }
+                                )
+                            }
+                        }
                     }
 
                     items(lugaresFiltradosPorTexto) { lugar ->
