@@ -63,10 +63,16 @@ fun PantallaLoginGoogle(
 
     val hayConexion by networkMonitor.isConnected.collectAsState()
 
+
+
     val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
         .requestIdToken("1015355618690-npaigcljk1q1bec5tdsab0a088rnri4n.apps.googleusercontent.com") // 👈 Usa tu ID real
         .requestEmail()
         .build()
+
+    val lastAccount = GoogleSignIn.getLastSignedInAccount(context)
+    Log.d("GOOGLE_LOGIN", "Última cuenta firmada: ${lastAccount?.email}")
+
 
     val googleSignInClient = GoogleSignIn.getClient(activity, gso)
 

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -66,6 +67,7 @@ import com.yucsan.mapgendafernandochang2025.ThemeViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.LugarViewModel
 import com.yucsan.mapgendafernandochang2025.viewmodel.UbicacionViewModel
 
+import androidx.compose.material3.Switch
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @OptIn(ExperimentalLayoutApi::class)
@@ -102,6 +104,8 @@ fun PantallaFiltroDescarga(
     val exitAnimation = slideOutVertically { it } + fadeOut()
 
     val ubicacionesGuardadas by ubicacionViewModel.ubicaciones.collectAsState()
+
+    var seguroActivado by remember { mutableStateOf(false) }
 
     LaunchedEffect(triggerRecomposicion) {
         viewModelLugar.cargarConteoSubcategorias()
@@ -265,7 +269,7 @@ fun PantallaFiltroDescarga(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Descargas restantes: ${18 - seleccionadas.size}",
+                            text = "Descargas restantes: ${3 - seleccionadas.size}",
                             color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
@@ -391,31 +395,54 @@ fun PantallaFiltroDescarga(
 
                 item {
                     Spacer(Modifier.height(16.dp))
-                    Button(
-                        onClick = {
-                            if (seleccionadas.isNotEmpty()) {
-                                scope.launch {
-                                    iniciarCarga = true
-                                    viewModelLugar.descargarLugaresPorSubcategoriasPersonalizadas(
-                                        context = context,
-                                        subcategorias = seleccionadas.toSet(),
-                                        apiKey = apiKey
-                                    )
-                                    triggerRecomposicion++ // Fuerza actualización del conteo
-
-                                }
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    "Selecciona al menos una subcategoría",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        },
-                        enabled = seleccionadas.isNotEmpty() && !cargando,
-                        modifier = Modifier.fillMaxWidth()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
                     ) {
-                        Text("Descargar Categorías Seleccionadas")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Seguro de descarga",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (seguroActivado) Color.Red else MaterialTheme.colorScheme.onSurface
+                            )
+                            Switch(
+                                checked = seguroActivado,
+                                onCheckedChange = { seguroActivado = it },
+                                enabled = true
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                if (seleccionadas.isNotEmpty()) {
+                                    scope.launch {
+                                        iniciarCarga = true
+                                        viewModelLugar.descargarLugaresPorSubcategoriasPersonalizadas(
+                                            context = context,
+                                            subcategorias = seleccionadas.toSet(),
+                                            apiKey = apiKey
+                                        )
+                                        triggerRecomposicion++
+                                        seguroActivado = true // Activar el seguro después de la descarga
+                                    }
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "Selecciona al menos una subcategoría",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
+                            enabled = seleccionadas.isNotEmpty() && !cargando && !seguroActivado,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Descargar Categorías Seleccionadas")
+                        }
                     }
                 }
 
